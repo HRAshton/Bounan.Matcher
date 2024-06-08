@@ -1,0 +1,11 @@
+.idea/
+Bounan.LoanApi.Tests/TestResults/
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+*.user
+
+cdk.out/
+Matcher/Worker.Tests/Out/
