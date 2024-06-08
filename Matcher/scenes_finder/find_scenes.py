@@ -70,7 +70,7 @@ def _get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[str]:
     truncated_durations_per_episode = []
     for i, playlist in enumerate(playlists):
         if file_path_to_delete is not None:
-            pass  # os.remove(file_path_to_delete)
+            os.remove(file_path_to_delete)
 
         wav_path, truncated_duration = _get_wav(playlist, opening, i)
         truncated_durations_per_episode.append(truncated_duration)
