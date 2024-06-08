@@ -1,6 +1,7 @@
 import logging
 import math
 import os
+import warnings
 from statistics import median
 from typing import List, Tuple, Iterator
 
@@ -101,8 +102,10 @@ def _fix_openings(openings: List[Interval], playlists_and_durations: List[tuple[
 def _get_openings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Interval]:
     playlists = [playlist for playlist, _ in playlists_and_durations]
     opening_iter = _get_wav_iter(playlists, True)
-    # noinspection PyTypeChecker
-    openings: List[Interval] = recognise_from_audio_files(opening_iter, DEFAULT_CONFIG)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        lib_openings = recognise_from_audio_files(opening_iter, DEFAULT_CONFIG)
+        openings = [Interval(opening.start, opening.end) for opening in lib_openings]
 
     fixed_openings: List[Interval] = _fix_openings(openings, playlists_and_durations)
 
@@ -114,13 +117,16 @@ def _get_endings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Inte
 
     playlists = [playlist for playlist, _ in playlists_and_durations]
     ending_iter = _get_wav_iter(playlists, False)
-    endings = recognise_from_audio_files(ending_iter, DEFAULT_CONFIG)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        lib_endings = recognise_from_audio_files(ending_iter, DEFAULT_CONFIG)
+        endings = [Interval(ending.start, ending.end) for ending in lib_endings]
 
     fixed_endings: List[Interval] = []
     zipped = list(zip(endings, truncated_durations_per_episode, playlists_and_durations))
-    for endings, duration, (_, total_duration) in zipped:
+    for ending, duration, (_, total_duration) in zipped:
         offset = total_duration - duration
-        fixed_endings.append(Interval(endings[0] + offset, endings[1] + offset))
+        fixed_endings.append(Interval(ending.start + offset, ending.end + offset))
 
     return fixed_endings
 
