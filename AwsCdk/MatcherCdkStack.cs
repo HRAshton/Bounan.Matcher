@@ -32,8 +32,6 @@ public class MatcherCdkStack : Stack
 
         var user = new User(this, "User");
 
-        var image = BuildAndPushWorkerImage(user);
-
         var videoRegisteredQueue = CreateVideoRegisteredQueue(config, user);
         GrantPermissionsForLambdas(config, user);
 
@@ -48,15 +46,20 @@ public class MatcherCdkStack : Stack
         Out("UserAccessKeyId", accessKey.Ref);
         Out("UserSecretAccessKey", accessKey.AttrSecretAccessKey);
         Out("VideoRegisteredQueueUrl", videoRegisteredQueue.QueueUrl);
-        Out("ImageUri", image.ImageUri);
-    }
-
-    private DockerImageAsset BuildAndPushWorkerImage(IGrantable user)
-    {
-        var dockerImage = new DockerImageAsset(this, "MatcherImage", new DockerImageAssetProps { Directory = "." });
-        dockerImage.Repository.GrantPull(user);
-
-        return dockerImage;
+        Out(
+            "env",
+            $"""
+             AWS_DEFAULT_REGION={Region};
+             AWS_ACCESS_KEY_ID={accessKey.Ref};
+             AWS_SECRET_ACCESS_KEY={accessKey.AttrSecretAccessKey};
+             LOG_GROUP_NAME={logGroup.LogGroupName};
+             GET_SERIES_TO_MATCH_LAMBDA_NAME={config.GetSeriesToMatchLambdaName};
+             UPDATE_VIDEO_SCENES_LAMBDA_NAME={config.UpdateVideoScenesLambdaName};
+             VIDEO_REGISTERED_QUEUE_URL={videoRegisteredQueue.QueueUrl};
+             LOAN_API_TOKEN=;
+             LOG_LEVEL=INFO;
+             OMP_NUM_THREADS=1;
+             """);
     }
 
     private IQueue CreateVideoRegisteredQueue(MatcherCdkStackConfig config, IGrantable user)
