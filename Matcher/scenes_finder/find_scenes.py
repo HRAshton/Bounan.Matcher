@@ -28,15 +28,17 @@ file_path_to_delete: str | None = None
 truncated_durations_per_episode: List[float] | None = None
 
 
-def _get_playlist_and_duration(video: AvailableVideo) -> Tuple[m3u8.M3U8, float]:
+def _get_playlist_and_duration(video: AvailableVideo) -> Tuple[m3u8.M3U8, float] | None:
     playlist_content = get_playlist(video)
     playlist = m3u8.loads(playlist_content)
     if not playlist.segments:
-        raise SystemExit(f"Skipping video {video.id} because it has no segments")
+        logger.warning(f"Skipping video {video.id} because it has no segments")
+        return None
 
     total_duration = sum([segment.duration for segment in playlist.segments])
     if total_duration < 2 * Config.seconds_to_match:
-        raise SystemExit(f"Skipping video {video.id} because it's too short ({total_duration}s)")
+        logger.warning(f"Skipping video {video.id} because it's too short ({total_duration}s)")
+        return None
 
     return playlist, total_duration
 
@@ -153,11 +155,13 @@ def _combine_scenes(opening: Interval, ending: Interval, total_duration: float) 
                   _filter_scene(scene_after_ending))
 
 
-def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey, Scenes]]:
+def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey, Scenes]] | None:
     logger.debug("Processing videos")
 
     playlists_and_durations = [_get_playlist_and_duration(video)
                                for video in videos_to_process]
+    if None in playlists_and_durations:
+        return None
 
     openings = _get_openings(playlists_and_durations)
     endings = _get_endings(playlists_and_durations)

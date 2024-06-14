@@ -77,6 +77,10 @@ def _process_videos(videos_to_match: List[VideoKey]) -> None:
 
     scenes_by_video = find_scenes(videos_to_process)
     logger.info(f"Scenes by video: {scenes_by_video}")
+    if scenes_by_video is None:
+        logger.warning("Error occurred while processing videos. Uploading empty scenes...")
+        upload_empty_scenes(videos_to_match)
+        return
 
     scenes_to_upload = _get_scenes_to_upload(scenes_by_video)
     logger.info(f"Scenes to upload ({len(scenes_to_upload.items)}): {scenes_to_upload.items}")
@@ -99,6 +103,9 @@ def main():
                 continue
 
             _process_videos(videos_to_match)
+        except KeyboardInterrupt:
+            logger.error("Shutting down...")
+            break
         except Exception as e:
             logger.error(f"An error occurred: {e}")
             if len(videos_to_match) > 0:
