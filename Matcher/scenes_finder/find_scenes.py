@@ -76,11 +76,14 @@ def _get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[s
             os.remove(file_path_to_delete)
 
         wav_path, segments_duration = _get_wav(playlist, opening, i)
-        # Hard limit on the duration of the audio file to prevent memory issues.
+
         truncated_duration = min(segments_duration, Config.seconds_to_match)
+        offset = 0 if opening else max(segments_duration - Config.seconds_to_match, 0)
+
         truncated_durations_per_episode.append(truncated_duration)
         file_path_to_delete = wav_path
-        yield wav_path, 0, truncated_duration
+
+        yield wav_path, offset, truncated_duration
 
 
 def _fix_openings(openings: List[Interval], playlists_and_durations: List[tuple[M3U8, float]]) -> List[Interval]:
