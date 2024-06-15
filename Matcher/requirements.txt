@@ -1,5 +1,6 @@
 aiohttp ~= 3.9.5
 boto3 ~= 1.34.122
+python-dotenv ~= 1.0.1
 ffmpeg-python ~= 0.2.0
 m3u8 ~= 5.0.0
 marshmallow-dataclass ~= 8.6.1
