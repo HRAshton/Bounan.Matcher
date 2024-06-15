@@ -8,7 +8,7 @@ from typing import List, Tuple, Iterator
 import m3u8
 from m3u8 import M3U8
 from series_intro_recognizer.config import Config as SirConfig
-from series_intro_recognizer.processors.audio_files import recognise_from_audio_files
+from series_intro_recognizer.processors.audio_files import recognise_from_audio_files_with_offsets
 
 from LoanApi.LoanApi.get_playlist import get_playlist
 from LoanApi.LoanApi.models import AvailableVideo
@@ -68,17 +68,19 @@ def _get_wav(playlist: m3u8.M3U8, opening: bool, episode: int) -> Tuple[str, flo
     return wav_path, current_duration
 
 
-def _get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[str]:
+def _get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[str, float, float]]:
     global file_path_to_delete, truncated_durations_per_episode
     truncated_durations_per_episode = []
     for i, playlist in enumerate(playlists):
         if file_path_to_delete is not None:
             os.remove(file_path_to_delete)
 
-        wav_path, truncated_duration = _get_wav(playlist, opening, i)
+        wav_path, segments_duration = _get_wav(playlist, opening, i)
+        # Hard limit on the duration of the audio file to prevent memory issues.
+        truncated_duration = min(segments_duration, Config.seconds_to_match)
         truncated_durations_per_episode.append(truncated_duration)
         file_path_to_delete = wav_path
-        yield wav_path
+        yield wav_path, 0, truncated_duration
 
 
 def _fix_openings(openings: List[Interval], playlists_and_durations: List[tuple[M3U8, float]]) -> List[Interval]:
@@ -106,7 +108,7 @@ def _get_openings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Int
     opening_iter = _get_wav_iter(playlists, True)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        lib_openings = recognise_from_audio_files(opening_iter, DEFAULT_CONFIG)
+        lib_openings = recognise_from_audio_files_with_offsets(opening_iter, DEFAULT_CONFIG)
         openings = [Interval(opening.start, opening.end) for opening in lib_openings]
 
     fixed_openings: List[Interval] = _fix_openings(openings, playlists_and_durations)
@@ -121,7 +123,7 @@ def _get_endings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Inte
     ending_iter = _get_wav_iter(playlists, False)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        lib_endings = recognise_from_audio_files(ending_iter, DEFAULT_CONFIG)
+        lib_endings = recognise_from_audio_files_with_offsets(ending_iter, DEFAULT_CONFIG)
         endings = [Interval(ending.start, ending.end) for ending in lib_endings]
 
     fixed_endings: List[Interval] = []
