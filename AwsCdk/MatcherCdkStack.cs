@@ -138,6 +138,7 @@ public sealed class MatcherCdkStack : Stack
         {
             Metric = noLogsMetric,
             Threshold = 0,
+            ComparisonOperator = ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
             EvaluationPeriods = 1,
             TreatMissingData = TreatMissingData.BREACHING,
             AlarmDescription = "Alarm if no logs received within 2 minutes"
