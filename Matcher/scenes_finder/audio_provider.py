@@ -41,9 +41,6 @@ def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[st
 
         yield wav_path, offset, truncated_duration
 
-    if file_path_to_delete is not None and DELETE_TEMP_FILES:
-        os.remove(file_path_to_delete)
-
 
 def get_truncated_durations() -> List[float]:
     global truncated_durations_per_episode
