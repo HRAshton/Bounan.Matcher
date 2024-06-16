@@ -93,7 +93,8 @@ public sealed class MatcherCdkStack : Stack
     {
         return new LogGroup(this, "LogGroup", new LogGroupProps
         {
-            Retention = RetentionDays.ONE_WEEK
+            Retention = RetentionDays.ONE_WEEK,
+            RemovalPolicy = RemovalPolicy.DESTROY,
         });
     }
 
@@ -104,7 +105,7 @@ public sealed class MatcherCdkStack : Stack
             FilterPattern = FilterPattern.AnyTerm("ERROR", "Error", "error", "fail"),
             MetricNamespace = StackName,
             MetricName = "ErrorCount",
-            MetricValue = "1"
+            MetricValue = "1",
         });
 
         var alarm = new Alarm(this, "LogGroupErrorAlarm", new AlarmProps
