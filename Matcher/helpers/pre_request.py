@@ -13,16 +13,6 @@ pool = concurrent.futures.ProcessPoolExecutor(max_workers=1)
 results: Dict[int, Callable[[], R]] = {}
 
 
-def _run_with_logger(func: Callable[[A], R], *args: A) -> R:
-    # This function is executed in a subprocess, so we need to set up logging
-    setup_logging()
-    return func(*args)
-
-
-def _run_in_subprocess(func: Callable[[A], R], *args: A) -> Future[R]:
-    return pool.submit(_run_with_logger, func, *args)
-
-
 def pre_request(key: int, func: Callable[[A], R], *args: A) -> None:
     global results
     assert key not in results
@@ -40,3 +30,13 @@ def get_result(key: int) -> R:
     del results[key]
 
     return wav_path, current_duration
+
+
+def _run_in_subprocess(func: Callable[[A], R], *args: A) -> Future[R]:
+    return pool.submit(_run_with_logger, func, *args)
+
+
+def _run_with_logger(func: Callable[[A], R], *args: A) -> R:
+    # This function is executed in a subprocess, so we need to set up logging
+    setup_logging()
+    return func(*args)
