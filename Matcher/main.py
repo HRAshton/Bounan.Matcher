@@ -73,11 +73,12 @@ def _process_videos(videos_to_match: List[VideoKey]) -> None:
     _ensure_if_all_videos_for_same_group(videos_to_match)
 
     videos_to_process = _get_videos_to_process(videos_to_match)
-    logger.info(f"Videos to process ({len(videos_to_process)}): {videos_to_process}")
     if videos_to_process is None:
         logger.info("Not enough videos to process. Waiting for new videos...")
         upload_empty_scenes(videos_to_match)
         return
+
+    logger.info(f"Videos to process ({len(videos_to_process)}): {videos_to_process}")
 
     scenes_by_video = find_scenes(videos_to_process)
     logger.info(f"Scenes by video: {scenes_by_video}")
