@@ -80,7 +80,7 @@ def _get_openings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Int
 
 
 def _get_endings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Interval]:
-    playlists = [playlist for playlist, _ in playlists_and_durations[:5]]
+    playlists = [playlist for playlist, _ in playlists_and_durations]
     ending_iter = get_wav_iter(playlists, False)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")

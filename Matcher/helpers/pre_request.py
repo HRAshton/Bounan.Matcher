@@ -1,4 +1,5 @@
 import concurrent.futures
+import logging
 from concurrent.futures import Future
 from typing import Callable, TypeVar, Dict
 
@@ -7,10 +8,12 @@ from matcher_logger import setup_logging
 A = TypeVar('A')
 R = TypeVar('R')
 
-USE_MULTIPROCESSING = False  # Set False to prevent PyCharm debug issues
+USE_MULTIPROCESSING = True  # Use False to prevent PyCharm debug issues
 
 pool = concurrent.futures.ProcessPoolExecutor(max_workers=1)
 results: Dict[int, Callable[[], R]] = {}
+
+logger = logging.getLogger(__name__)
 
 
 def pre_request(key: int, func: Callable[[A], R], *args: A) -> None:
@@ -21,6 +24,7 @@ def pre_request(key: int, func: Callable[[A], R], *args: A) -> None:
         future = _run_in_subprocess(func, *args)
         results[key] = lambda: future.result()
     else:
+        logger.warning("Multiprocessing is disabled")
         results[key] = lambda: func(*args)
 
 
