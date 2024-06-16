@@ -13,6 +13,9 @@ def wait_for_notification():
     """
     Wait for a notification from the SQS queue
     """
+
+    last_operating_log_time = time.time()
+
     while True:
         messages = client.receive_message(QueueUrl=Config.notification_queue_url,
                                           MaxNumberOfMessages=1,
@@ -25,4 +28,9 @@ def wait_for_notification():
             break
 
         logger.debug("No messages received. Waiting for new messages...")
+
+        if time.time() - last_operating_log_time > 60 / Config.operating_log_rate_per_minute:
+            logger.info("Waiting for new messages...")
+            last_operating_log_time = time.time()
+
         time.sleep(1)

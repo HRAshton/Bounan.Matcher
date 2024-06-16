@@ -46,5 +46,9 @@ class _Config:
     def min_scene_length_secs(self) -> int:
         return os.environ.get('MIN_SCENE_LENGTH_SECS', 20)
 
+    @property
+    def operating_log_rate_per_minute(self) -> int:
+        return os.environ.get('OPERATING_LOG_RATE_PER_MINUTE', 1)
+
 
 Config = _Config()

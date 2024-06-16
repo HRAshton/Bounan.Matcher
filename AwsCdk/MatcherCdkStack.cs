@@ -1,8 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Amazon.CDK;
 using Amazon.CDK.AWS.CloudWatch;
-using Amazon.CDK.AWS.Ecr.Assets;
 using Amazon.CDK.AWS.IAM;
 using Amazon.CDK.AWS.Lambda;
 using Amazon.CDK.AWS.Logs;
@@ -18,7 +18,7 @@ using LogGroupProps = Amazon.CDK.AWS.Logs.LogGroupProps;
 namespace Bounan.Matcher.AwsCdk;
 
 [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
-public class MatcherCdkStack : Stack
+public sealed class MatcherCdkStack : Stack
 {
     internal MatcherCdkStack(Construct scope, string id, IStackProps? props = null) : base(scope, id, props)
     {
@@ -37,6 +37,7 @@ public class MatcherCdkStack : Stack
 
         var logGroup = CreateLogGroup();
         SetErrorAlarm(config, logGroup);
+        SetNoLogsAlarm(config, logGroup);
         logGroup.GrantWrite(user);
 
         var accessKey = new CfnAccessKey(this, "AccessKey", new CfnAccessKeyProps { UserName = user.UserName });
@@ -98,10 +99,6 @@ public class MatcherCdkStack : Stack
 
     private void SetErrorAlarm(MatcherCdkStackConfig config, ILogGroup logGroup)
     {
-        var topic = new Topic(this, "LogGroupAlarmSnsTopic", new TopicProps());
-
-        topic.AddSubscription(new EmailSubscription(config.AlertEmail));
-
         var metricFilter = logGroup.AddMetricFilter("ErrorMetricFilter", new MetricFilterOptions
         {
             FilterPattern = FilterPattern.AnyTerm("ERROR", "Error", "error", "fail"),
@@ -117,7 +114,38 @@ public class MatcherCdkStack : Stack
             EvaluationPeriods = 1,
             TreatMissingData = TreatMissingData.NOT_BREACHING,
         });
+
+        var topic = new Topic(this, "LogGroupAlarmSnsTopic", new TopicProps());
+        topic.AddSubscription(new EmailSubscription(config.AlertEmail));
         alarm.AddAlarmAction(new AlarmActions.SnsAction(topic));
+    }
+
+    private void SetNoLogsAlarm(MatcherCdkStackConfig config, ILogGroup logGroup)
+    {
+        var noLogsMetric = new Metric(new MetricProps
+        {
+            Namespace = "AWS/Logs",
+            MetricName = "IncomingLogEvents",
+            DimensionsMap = new Dictionary<string, string>
+            {
+                { "LogGroupName", logGroup.LogGroupName }
+            },
+            Statistic = "Sum",
+            Period = Duration.Minutes(2),
+        });
+
+        var noLogAlarm = new Alarm(this, "NoLogsAlarm", new AlarmProps
+        {
+            Metric = noLogsMetric,
+            Threshold = 0,
+            EvaluationPeriods = 1,
+            TreatMissingData = TreatMissingData.BREACHING,
+            AlarmDescription = "Alarm if no logs received within 2 minutes"
+        });
+
+        var topic = new Topic(this, "NoLogAlarmSnsTopic", new TopicProps());
+        topic.AddSubscription(new EmailSubscription(config.AlertEmail));
+        noLogAlarm.AddAlarmAction(new AlarmActions.SnsAction(topic));
     }
 
     private void Out(string key, string value)
