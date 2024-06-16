@@ -29,7 +29,7 @@ def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[st
 
         wav_path, segments_duration = get_result(i)
         if i + 1 < len(playlists):
-            pre_request(i + 1, _get_wav, playlist, opening, i + 1)
+            pre_request(i + 1, _get_wav, playlists[i + 1], opening, i + 1)
 
         truncated_duration = min(segments_duration, Config.seconds_to_match)
         offset = 0 if opening else max(segments_duration - Config.seconds_to_match, 0)
