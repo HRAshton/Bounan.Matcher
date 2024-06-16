@@ -8,6 +8,8 @@ from Matcher.config.Config import Config
 from Matcher.scenes_finder.audio_merger import download_and_merge_parts
 from helpers.pre_request import pre_request, get_result
 
+DELETE_TEMP_FILES = True
+
 logger = logging.getLogger(__name__)
 
 file_path_to_delete: str | None = None
@@ -24,7 +26,7 @@ def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[st
     pre_request(0, _get_wav, playlists[0], opening, 0)
 
     for i, playlist in enumerate(playlists):
-        if file_path_to_delete is not None:
+        if file_path_to_delete is not None and DELETE_TEMP_FILES:
             os.remove(file_path_to_delete)
 
         wav_path, segments_duration = get_result(i)
@@ -38,6 +40,9 @@ def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[st
         file_path_to_delete = wav_path
 
         yield wav_path, offset, truncated_duration
+
+    if file_path_to_delete is not None and DELETE_TEMP_FILES:
+        os.remove(file_path_to_delete)
 
 
 def get_truncated_durations() -> List[float]:
