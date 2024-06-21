@@ -69,17 +69,20 @@ def _merge_parts(index: int, playlist_path: str) -> str:
 
 
 async def _download_all_files(urls: List[str]) -> List[str]:
+    sem = asyncio.Semaphore(Config.download_threads)
+
     async with aiohttp.ClientSession() as session:
-        tasks = [_download_part(session, i, url) for i, url in enumerate(urls)]
+        tasks = [_download_part(sem, session, i, url) for i, url in enumerate(urls)]
         results = await asyncio.gather(*tasks)
         return results
 
 
-async def _download_part(session: ClientSession, index: int, url: str) -> str:
-    async with session.get(url) as response:
-        file_path = os.path.join(TEMP_PATH_DIR, f'{index}.ts')
-        with open(file_path, 'wb') as f:
-            async for data in response.content.iter_chunked(1024 * 1024):
-                f.write(data)
-        logger.debug(f"Downloaded {url} -> {file_path}")
-        return file_path
+async def _download_part(sem: asyncio.Semaphore, session: ClientSession, index: int, url: str) -> str:
+    async with sem:
+        async with session.get(url) as response:
+            file_path = os.path.join(TEMP_PATH_DIR, f'{index}.ts')
+            with open(file_path, 'wb') as f:
+                async for data in response.content.iter_chunked(1024 * 1024):
+                    f.write(data)
+            logger.debug(f"Downloaded {url} -> {file_path}")
+            return file_path
