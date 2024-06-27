@@ -1,3 +1,5 @@
+import traceback
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -111,8 +113,8 @@ def main():
         except KeyboardInterrupt:
             logger.error("Shutting down...")
             break
-        except Exception as e:
-            logger.error(f"An error occurred: {e}")
+        except Exception as ex:
+            logger.error(f"An error occurred: {ex}. {traceback.TracebackException.from_exception(ex).format()}")
             if len(videos_to_match) > 0:
                 upload_empty_scenes(videos_to_match)
 
