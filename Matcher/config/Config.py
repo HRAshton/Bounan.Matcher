@@ -16,7 +16,7 @@ class _Config:
 
     @property
     def seconds_to_match(self) -> int:
-        return os.environ.get('SECONDS_TO_MATCH', 6 * 60)
+        return int(os.environ.get('SECONDS_TO_MATCH', 6 * 60))
 
     @property
     def notification_queue_url(self) -> str:
@@ -36,19 +36,19 @@ class _Config:
 
     @property
     def download_threads(self) -> int:
-        return os.environ.get('DOWNLOAD_THREADS', 12)
+        return int(os.environ.get('DOWNLOAD_THREADS', 12))
 
     @property
     def scene_after_opening_threshold_secs(self) -> int:
-        return os.environ.get('SCENE_AFTER_OPENING_THRESHOLD', 4)
+        return int(os.environ.get('SCENE_AFTER_OPENING_THRESHOLD', 4))
 
     @property
     def min_scene_length_secs(self) -> int:
-        return os.environ.get('MIN_SCENE_LENGTH_SECS', 20)
+        return int(os.environ.get('MIN_SCENE_LENGTH_SECS', 20))
 
     @property
     def operating_log_rate_per_minute(self) -> int:
-        return os.environ.get('OPERATING_LOG_RATE_PER_MINUTE', 1)
+        return int(os.environ.get('OPERATING_LOG_RATE_PER_MINUTE', 1))
 
 
 Config = _Config()
