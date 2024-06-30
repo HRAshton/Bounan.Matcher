@@ -9,13 +9,14 @@ from m3u8 import M3U8
 from series_intro_recognizer.config import Config as SirConfig
 from series_intro_recognizer.processors.audio_files import recognise_from_audio_files_with_offsets
 
+from Common.py_generated.bounan_common.models.interval import Interval
+from Common.py_generated.bounan_common.models.scenes import Scenes
+from Common.py_generated.bounan_common.models.video_key import VideoKey
 from LoanApi.LoanApi.get_playlist import get_playlist
 from LoanApi.LoanApi.models import AvailableVideo
 from Matcher.config.Config import Config
-from Matcher.models.Interval import Interval
-from Matcher.models.Scenes import Scenes
-from Matcher.models.VideoKey import VideoKey
-from scenes_finder.audio_provider import get_wav_iter, get_truncated_durations
+from Matcher.model_constructors.constructors import create_video_key, create_interval, create_scenes
+from Matcher.scenes_finder.audio_provider import get_wav_iter, get_truncated_durations
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,8 @@ def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey,
         """
         scenes = _combine_scenes(opening, ending, total_duration)
 
-        video_key = VideoKey(video.my_anime_list_id, video.dub, video.episode)
+        video_key = create_video_key(video.my_anime_list_id, video.dub, video.episode)
+        video_key.episode = video.episode
         all_scenes.append((video_key, scenes))
 
     return all_scenes
@@ -71,7 +73,7 @@ def _get_openings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Int
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         lib_openings = recognise_from_audio_files_with_offsets(opening_iter, DEFAULT_CONFIG)
-        openings = [Interval(opening.start, opening.end) for opening in lib_openings]
+        openings = [create_interval(opening.start, opening.end) for opening in lib_openings]
 
     truncated_durations = get_truncated_durations()
     fixed_openings: List[Interval] = _fix_openings(openings, playlists_and_durations, truncated_durations)
@@ -85,7 +87,7 @@ def _get_endings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Inte
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         lib_endings = recognise_from_audio_files_with_offsets(ending_iter, DEFAULT_CONFIG)
-        endings = [Interval(ending.start, ending.end) for ending in lib_endings]
+        endings = [create_interval(ending.start, ending.end) for ending in lib_endings]
 
     truncated_durations = get_truncated_durations()
     fixed_endings: List[Interval] = _fix_endings(endings, playlists_and_durations, truncated_durations)
@@ -100,13 +102,13 @@ def _combine_scenes(opening: Interval, ending: Interval, total_duration: float) 
     scene_after_ending = None
     if new_ending is not None:
         if abs(total_duration - ending.end) > Config.scene_after_opening_threshold_secs:
-            scene_after_ending = Interval(ending.end, total_duration)
+            scene_after_ending = create_interval(ending.end, total_duration)
         else:
-            new_ending = Interval(ending.start, total_duration)
+            new_ending = create_interval(ending.start, total_duration)
 
-    return Scenes(_filter_scene(new_opening),
-                  _filter_scene(new_ending),
-                  _filter_scene(scene_after_ending))
+    return create_scenes(opening=_filter_scene(new_opening),
+                         ending=_filter_scene(new_ending),
+                         scene_after_ending=_filter_scene(scene_after_ending))
 
 
 def _fix_openings(openings: List[Interval],
@@ -121,10 +123,10 @@ def _fix_openings(openings: List[Interval],
     for opening, duration, (_, total_duration) in zipped:
         if opening.start < Config.scene_after_opening_threshold_secs:
             # If the beginning of the opening is close to the beginning of the video, extend it.
-            fixed_openings.append(Interval(0, opening.end))
+            fixed_openings.append(create_interval(0, opening.end))
         elif abs(total_duration - opening.end) < Config.scene_after_opening_threshold_secs:
             # If the end of the opening is close to the end of the video, extend it to the average duration.
-            fixed_openings.append(Interval(opening.start, opening.start + median_duration))
+            fixed_openings.append(create_interval(opening.start, opening.start + median_duration))
         else:
             fixed_openings.append(opening)
 
@@ -138,7 +140,7 @@ def _fix_endings(endings: List[Interval],
     zipped = list(zip(endings, truncated_durations, playlists_and_durations))
     for ending, duration, (_, total_duration) in zipped:
         offset = total_duration - duration
-        fixed_endings.append(Interval(ending.start + offset, ending.end + offset))
+        fixed_endings.append(create_interval(ending.start + offset, ending.end + offset))
 
     return fixed_endings
 

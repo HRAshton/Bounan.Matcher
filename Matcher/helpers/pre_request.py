@@ -3,7 +3,7 @@ import logging
 from concurrent.futures import Future
 from typing import Callable, TypeVar, Dict
 
-from matcher_logger import setup_logging
+from Matcher.matcher_logger import setup_logging
 
 A = TypeVar('A')
 R = TypeVar('R')

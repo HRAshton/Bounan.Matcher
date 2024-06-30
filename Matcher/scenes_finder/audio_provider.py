@@ -6,7 +6,7 @@ import m3u8
 
 from Matcher.config.Config import Config
 from Matcher.scenes_finder.audio_merger import download_and_merge_parts
-from helpers.pre_request import pre_request, get_result
+from Matcher.helpers.pre_request import pre_request, get_result
 
 DELETE_TEMP_FILES = True
 

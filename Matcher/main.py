@@ -2,21 +2,22 @@ import traceback
 
 from dotenv import load_dotenv
 
+from AniManClient.AniManClient import upload_empty_scenes, update_video_scenes, get_videos_to_match
+from Common.py_generated.bounan_common.models.matcher_result_request import MatcherResultRequest
+from Common.py_generated.bounan_common.models.scenes import Scenes
+from Common.py_generated.bounan_common.models.video_key import VideoKey
+from model_constructors.constructors import create_matcher_result_request_item
+
 load_dotenv()
 
 import logging
 from typing import List, Tuple
 
-from AniMenClient.AniMenClient import upload_empty_scenes, update_video_scenes
-from AniMenClient.VideoScenesResponse import VideoScenesResponse, VideoScenesResponseItem
 from LoanApi.LoanApi.get_available_videos import get_available_videos
 from LoanApi.LoanApi.models import AvailableVideo
 from Matcher import SqsClient
-from Matcher.AniMenClient import AniMenClient
 from Matcher.config.Config import Config
-from Matcher.models.VideoKey import VideoKey
 from matcher_logger import setup_logging
-from models.Scenes import Scenes
 from scenes_finder.find_scenes import find_scenes
 
 logger = logging.getLogger(__name__)
@@ -64,10 +65,13 @@ def _get_videos_to_process(videos_to_match: List[VideoKey]) -> List[AvailableVid
     return list(videos_to_process)
 
 
-def _get_scenes_to_upload(scenes_by_video: List[Tuple[VideoKey, Scenes]]) -> VideoScenesResponse:
-    items = [VideoScenesResponseItem(video_key=video_key, scenes=scenes)
+def _get_scenes_to_upload(scenes_by_video: List[Tuple[VideoKey, Scenes]]) -> MatcherResultRequest:
+    items = [create_matcher_result_request_item(video_key.my_anime_list_id,
+                                                video_key.dub,
+                                                video_key.episode,
+                                                scenes)
              for video_key, scenes in scenes_by_video]
-    return VideoScenesResponse(items=items)
+    return MatcherResultRequest(items=map(lambda x: x.to_dict(), items))
 
 
 def _process_videos(videos_to_match: List[VideoKey]) -> None:
@@ -102,7 +106,7 @@ def main():
 
         videos_to_match: List[VideoKey] = []
         try:
-            videos_to_match_res = AniMenClient.get_videos_to_match()
+            videos_to_match_res = get_videos_to_match()
             videos_to_match = videos_to_match_res.videos_to_match
             if len(videos_to_match) == 0:
                 logger.info("No videos to match. Waiting for new videos...")
