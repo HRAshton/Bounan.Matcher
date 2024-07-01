@@ -8,7 +8,7 @@ from Matcher.matcher_logger import setup_logging
 A = TypeVar('A')
 R = TypeVar('R')
 
-USE_MULTIPROCESSING = False  # Use False to prevent PyCharm debug issues TODO: Remove this line
+USE_MULTIPROCESSING = True  # Use False to prevent PyCharm debug issues
 
 pool = concurrent.futures.ProcessPoolExecutor(max_workers=1)
 results: Dict[int, Callable[[], R]] = {}
