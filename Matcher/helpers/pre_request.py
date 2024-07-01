@@ -3,12 +3,12 @@ import logging
 from concurrent.futures import Future
 from typing import Callable, TypeVar, Dict
 
-from matcher_logger import setup_logging
+from Matcher.matcher_logger import setup_logging
 
 A = TypeVar('A')
 R = TypeVar('R')
 
-USE_MULTIPROCESSING = True  # Use False to prevent PyCharm debug issues
+USE_MULTIPROCESSING = False  # Use False to prevent PyCharm debug issues TODO: Remove this line
 
 pool = concurrent.futures.ProcessPoolExecutor(max_workers=1)
 results: Dict[int, Callable[[], R]] = {}

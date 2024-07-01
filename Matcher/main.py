@@ -2,21 +2,20 @@ import traceback
 
 from dotenv import load_dotenv
 
+from Common.py.models import VideoKey, Scenes, MatcherResultRequest, MatcherResultRequestItem
+
 load_dotenv()
 
 import logging
 from typing import List, Tuple
 
-from AniMenClient.AniMenClient import upload_empty_scenes, update_video_scenes
-from AniMenClient.VideoScenesResponse import VideoScenesResponse, VideoScenesResponseItem
+from Matcher.AniMenClient.AniMenClient import upload_empty_scenes, update_video_scenes
 from LoanApi.LoanApi.get_available_videos import get_available_videos
 from LoanApi.LoanApi.models import AvailableVideo
 from Matcher import SqsClient
 from Matcher.AniMenClient import AniMenClient
 from Matcher.config.Config import Config
-from Matcher.models.VideoKey import VideoKey
-from matcher_logger import setup_logging
-from models.Scenes import Scenes
+from Matcher.matcher_logger import setup_logging
 from scenes_finder.find_scenes import find_scenes
 
 logger = logging.getLogger(__name__)
@@ -64,10 +63,10 @@ def _get_videos_to_process(videos_to_match: List[VideoKey]) -> List[AvailableVid
     return list(videos_to_process)
 
 
-def _get_scenes_to_upload(scenes_by_video: List[Tuple[VideoKey, Scenes]]) -> VideoScenesResponse:
-    items = [VideoScenesResponseItem(video_key=video_key, scenes=scenes)
+def _get_scenes_to_upload(scenes_by_video: List[Tuple[VideoKey, Scenes]]) -> MatcherResultRequest:
+    items = [MatcherResultRequestItem(video_key=video_key, scenes=scenes)
              for video_key, scenes in scenes_by_video]
-    return VideoScenesResponse(items=items)
+    return MatcherResultRequest(items=items)
 
 
 def _process_videos(videos_to_match: List[VideoKey]) -> None:

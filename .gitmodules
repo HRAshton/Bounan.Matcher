@@ -1,3 +1,6 @@
 [submodule "LoanApi"]
 	path = LoanApi
 	url = https://github.com/HRAshton/LoanApi.py.git
+[submodule "Common"]
+	path = Common
+	url = https://github.com/HRAshton/BoUnAn.Common.git

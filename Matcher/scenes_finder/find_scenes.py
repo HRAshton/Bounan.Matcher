@@ -9,13 +9,11 @@ from m3u8 import M3U8
 from series_intro_recognizer.config import Config as SirConfig
 from series_intro_recognizer.processors.audio_files import recognise_from_audio_files_with_offsets
 
+from Common.py.models import VideoKey, Interval, Scenes
 from LoanApi.LoanApi.get_playlist import get_playlist
 from LoanApi.LoanApi.models import AvailableVideo
 from Matcher.config.Config import Config
-from Matcher.models.Interval import Interval
-from Matcher.models.Scenes import Scenes
-from Matcher.models.VideoKey import VideoKey
-from scenes_finder.audio_provider import get_wav_iter, get_truncated_durations
+from Matcher.scenes_finder.audio_provider import get_wav_iter, get_truncated_durations
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +114,8 @@ def _fix_openings(openings: List[Interval],
     Fix openings by extending them to the beginning or prolonging them to the median duration.
     """
     fixed_openings: List[Interval] = []
-    zipped = list(zip(openings, truncated_durations, playlists_and_durations))
+    zipped: List[tuple[Interval, float, tuple[M3U8, float]]] \
+        = list(zip(openings, truncated_durations, playlists_and_durations))
     median_duration = median([opening.end - opening.start for opening, _, _ in zipped])
     for opening, duration, (_, total_duration) in zipped:
         if opening.start < Config.scene_after_opening_threshold_secs:
@@ -135,7 +134,8 @@ def _fix_endings(endings: List[Interval],
                  playlists_and_durations: List[tuple[M3U8, float]],
                  truncated_durations: List[float]) -> List[Interval]:
     fixed_endings: List[Interval] = []
-    zipped = list(zip(endings, truncated_durations, playlists_and_durations))
+    zipped: List[tuple[Interval, float, tuple[M3U8, float]]] \
+        = list(zip(endings, truncated_durations, playlists_and_durations))
     for ending, duration, (_, total_duration) in zipped:
         offset = total_duration - duration
         fixed_endings.append(Interval(ending.start + offset, ending.end + offset))
