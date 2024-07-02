@@ -39,6 +39,10 @@ class _Config:
         return int(os.environ.get('DOWNLOAD_THREADS', 12))
 
     @property
+    def download_max_retries_for_ts(self) -> int:
+        return int(os.environ.get('DOWNLOAD_MAX_RETRIES_FOR_TS', 3))
+
+    @property
     def scene_after_opening_threshold_secs(self) -> int:
         return int(os.environ.get('SCENE_AFTER_OPENING_THRESHOLD', 4))
 

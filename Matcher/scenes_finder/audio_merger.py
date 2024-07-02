@@ -6,7 +6,7 @@ from typing import List
 
 import aiohttp
 import ffmpeg
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientConnectorError
 
 from Matcher.config.Config import Config
 
@@ -78,11 +78,22 @@ async def _download_all_files(urls: List[str]) -> List[str]:
 
 
 async def _download_part(sem: asyncio.Semaphore, session: ClientSession, index: int, url: str) -> str:
-    async with sem:
-        async with session.get(url) as response:
-            file_path = os.path.join(TEMP_PATH_DIR, f'{index}.ts')
-            with open(file_path, 'wb') as f:
-                async for data in response.content.iter_chunked(1024 * 1024):
-                    f.write(data)
-            logger.debug(f"Downloaded {url} -> {file_path}")
-            return file_path
+    retries = 0
+    max_retries = Config.download_max_retries_for_ts
+    while retries < max_retries:
+        try:
+            async with sem:
+                async with session.get(url) as response:
+                    file_path = os.path.join(TEMP_PATH_DIR, f'{index}.ts')
+                    with open(file_path, 'wb') as f:
+                        async for data in response.content.iter_chunked(1024 * 1024):
+                            f.write(data)
+                    logger.debug(f"Downloaded {url} -> {file_path}")
+                    return file_path
+        except ClientConnectorError as e:
+            logger.warning(f"Failed to download {url}. Retrying... ({retries + 1}/{max_retries})")
+            retries += 1
+            await asyncio.sleep(1)
+
+            if retries == max_retries:
+                raise e
