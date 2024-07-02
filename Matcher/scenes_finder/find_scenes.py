@@ -120,12 +120,13 @@ def _fix_openings(openings: List[Interval],
     for opening, duration, (_, total_duration) in zipped:
         if opening.start < Config.scene_after_opening_threshold_secs:
             # If the beginning of the opening is close to the beginning of the video, extend it.
-            fixed_openings.append(Interval(0, opening.end))
+            fixed_openings.append(Interval(0, round(opening.end, 2)))
         elif abs(total_duration - opening.end) < Config.scene_after_opening_threshold_secs:
             # If the end of the opening is close to the end of the video, extend it to the average duration.
-            fixed_openings.append(Interval(opening.start, opening.start + median_duration))
+            fixed_openings.append(Interval(round(opening.start, 2),
+                                           round(opening.start + median_duration, 2)))
         else:
-            fixed_openings.append(opening)
+            fixed_openings.append(Interval(round(opening.start, 2), round(opening.end, 2)))
 
     return fixed_openings
 
@@ -138,7 +139,8 @@ def _fix_endings(endings: List[Interval],
         = list(zip(endings, truncated_durations, playlists_and_durations))
     for ending, duration, (_, total_duration) in zipped:
         offset = total_duration - duration
-        fixed_endings.append(Interval(ending.start + offset, ending.end + offset))
+        fixed_endings.append(Interval(round(ending.start + offset, 2),
+                                      round(ending.end + offset, 2)))
 
     return fixed_endings
 
