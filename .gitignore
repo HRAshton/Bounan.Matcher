@@ -6,6 +6,7 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 *.user
+__pycache__
 
 cdk.out/
 Matcher/Worker.Tests/Out/
