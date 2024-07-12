@@ -102,7 +102,7 @@ public sealed class MatcherCdkStack : Stack
     {
         var metricFilter = logGroup.AddMetricFilter("ErrorMetricFilter", new MetricFilterOptions
         {
-            FilterPattern = FilterPattern.AnyTerm("ERROR", "Error", "error", "fail"),
+            FilterPattern = FilterPattern.AnyTerm("ERROR"),
             MetricNamespace = StackName,
             MetricName = "ErrorCount",
             MetricValue = "1",
