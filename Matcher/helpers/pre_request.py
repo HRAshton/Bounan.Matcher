@@ -16,6 +16,12 @@ results: Dict[int, Callable[[], R]] = {}
 logger = logging.getLogger(__name__)
 
 
+def init_pre_request_queue() -> None:
+    global results
+    results.clear()
+    logger.info('Queue was reset.')
+
+
 def pre_request(key: int, func: Callable[[A], R], *args: A) -> None:
     global results
     assert key not in results

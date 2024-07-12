@@ -6,7 +6,7 @@ import m3u8
 
 from Matcher.config.Config import Config
 from Matcher.scenes_finder.audio_merger import download_and_merge_parts
-from Matcher.helpers.pre_request import pre_request, get_result
+from Matcher.helpers.pre_request import pre_request, get_result, init_pre_request_queue
 
 DELETE_TEMP_FILES = True
 
@@ -23,6 +23,7 @@ def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[st
     if len(playlists) < 2:
         return
 
+    init_pre_request_queue()
     pre_request(0, _get_wav, playlists[0], opening, 0)
 
     for i, playlist in enumerate(playlists):
