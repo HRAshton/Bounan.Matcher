@@ -56,7 +56,10 @@ class _Config:
 
     @property
     def batch_size(self) -> int:
-        return int(os.environ.get('BATCH_SIZE', 30))
+        # 20 is set to avoid rate limits on Publisher side.
+        # It will automatically expand up to 10*2-1=19
+        # if last batch contains less than 10 videos.
+        return int(os.environ.get('BATCH_SIZE', 10))
 
 
 Config = _Config()
