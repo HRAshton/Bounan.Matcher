@@ -54,5 +54,9 @@ class _Config:
     def operating_log_rate_per_minute(self) -> int:
         return int(os.environ.get('OPERATING_LOG_RATE_PER_MINUTE', 1))
 
+    @property
+    def batch_size(self) -> int:
+        return int(os.environ.get('BATCH_SIZE', 30))
+
 
 Config = _Config()

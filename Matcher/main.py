@@ -1,6 +1,7 @@
 import traceback
 
 from dotenv import load_dotenv
+from retry import retry
 
 from Common.py.models import VideoKey, Scenes, MatcherResultRequest, MatcherResultRequestItem
 
@@ -69,6 +70,24 @@ def _get_scenes_to_upload(scenes_by_video: List[Tuple[VideoKey, Scenes]]) -> Mat
     return MatcherResultRequest(items=items)
 
 
+@retry(tries=2, delay=1)
+def _process_batch(videos_to_process: List[AvailableVideo]) -> None:
+    scenes_by_video = find_scenes(videos_to_process)
+    logger.info(f"Scenes by video: {scenes_by_video}")
+    if scenes_by_video is None:
+        logger.warning("Error occurred while processing videos. Uploading empty scenes...")
+        video_keys = [VideoKey(video.my_anime_list_id, video.dub, video.episode)
+                      for video in videos_to_process]
+        upload_empty_scenes(video_keys)
+        return
+
+    scenes_to_upload = _get_scenes_to_upload(scenes_by_video)
+    logger.info(f"Scenes to upload ({len(scenes_to_upload.items)}): {scenes_to_upload.items}")
+
+    update_video_scenes(scenes_to_upload)
+    logger.info("Scenes uploaded.")
+
+
 def _process_videos(videos_to_match: List[VideoKey]) -> None:
     logger.info(f"Received {len(videos_to_match)} videos to match: {videos_to_match}.")
     _ensure_if_all_videos_for_same_group(videos_to_match)
@@ -81,18 +100,17 @@ def _process_videos(videos_to_match: List[VideoKey]) -> None:
 
     logger.info(f"Videos to process ({len(videos_to_process)}): {videos_to_process}")
 
-    scenes_by_video = find_scenes(videos_to_process)
-    logger.info(f"Scenes by video: {scenes_by_video}")
-    if scenes_by_video is None:
-        logger.warning("Error occurred while processing videos. Uploading empty scenes...")
-        upload_empty_scenes(videos_to_match)
-        return
+    # Split videos to process into batches.
+    # Last batch should not contain less than Config.batch_size videos.
+    batches = [videos_to_process[i:i + Config.batch_size]
+               for i in range(0, len(videos_to_process), Config.batch_size)]
+    if len(batches) > 1 and len(batches[-1]) < Config.batch_size:
+        batches[-2].extend(batches.pop())
 
-    scenes_to_upload = _get_scenes_to_upload(scenes_by_video)
-    logger.info(f"Scenes to upload ({len(scenes_to_upload.items)}): {scenes_to_upload.items}")
-
-    update_video_scenes(scenes_to_upload)
-    logger.info("Scenes uploaded.")
+    for batch in batches:
+        logger.info(f"Processing batch ({len(batch)}): {batch}")
+        _process_batch(batch)
+        logger.info("Batch processed.")
 
 
 def main():
