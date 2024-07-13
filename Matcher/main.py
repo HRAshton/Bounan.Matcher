@@ -4,8 +4,6 @@ from dotenv import load_dotenv
 from retry import retry
 
 from Common.py.models import VideoKey, Scenes, MatcherResultRequest, MatcherResultRequestItem
-from Matcher import SqsClient
-from Matcher.AniMenClient import AniMenClient
 
 load_dotenv()
 
@@ -15,6 +13,8 @@ from typing import List, Tuple
 from Matcher.AniMenClient.AniMenClient import upload_empty_scenes, update_video_scenes
 from LoanApi.LoanApi.get_available_videos import get_available_videos
 from LoanApi.LoanApi.models import AvailableVideo
+from Matcher import SqsClient
+from Matcher.AniMenClient import AniMenClient
 from Matcher.config.Config import Config
 from Matcher.matcher_logger import setup_logging
 from scenes_finder.find_scenes import find_scenes
