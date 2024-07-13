@@ -27,7 +27,7 @@ def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[st
     pre_request(0, _get_wav, playlists[0], opening, 0)
 
     for i, playlist in enumerate(playlists):
-        if file_path_to_delete is not None and DELETE_TEMP_FILES:
+        if file_path_to_delete is not None and DELETE_TEMP_FILES and os.path.exists(file_path_to_delete):
             os.remove(file_path_to_delete)
 
         wav_path, segments_duration = get_result(i)
