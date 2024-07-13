@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from retry import retry
 
 from Common.py.models import VideoKey, Scenes, MatcherResultRequest, MatcherResultRequestItem
+from Matcher import SqsClient
+from Matcher.AniMenClient import AniMenClient
 
 load_dotenv()
 
@@ -13,8 +15,6 @@ from typing import List, Tuple
 from Matcher.AniMenClient.AniMenClient import upload_empty_scenes, update_video_scenes
 from LoanApi.LoanApi.get_available_videos import get_available_videos
 from LoanApi.LoanApi.models import AvailableVideo
-from Matcher import SqsClient
-from Matcher.AniMenClient import AniMenClient
 from Matcher.config.Config import Config
 from Matcher.matcher_logger import setup_logging
 from scenes_finder.find_scenes import find_scenes
@@ -108,16 +108,18 @@ def _process_videos(videos_to_match: List[VideoKey]) -> None:
         batches[-2].extend(batches.pop())
 
     for batch in batches:
-        logger.info(f"Processing batch ({len(batch)}): {batch}")
-        _process_batch(batch)
-        logger.info("Batch processed.")
+        try:
+            logger.info(f"Processing batch ({len(batch)}): {batch}")
+            _process_batch(batch)
+            logger.info("Batch processed.")
+        except Exception as e:
+            logger.error(f"Error occurred while processing batch: {e}")
 
 
 def main():
     while True:
         logger.info("Getting the data...")
 
-        videos_to_match: List[VideoKey] = []
         try:
             videos_to_match_res = AniMenClient.get_videos_to_match()
             videos_to_match = videos_to_match_res.videos_to_match
@@ -133,8 +135,6 @@ def main():
         except Exception as ex:
             logger.error(f"An error occurred: {ex}. "
                          f"{[x for x in traceback.TracebackException.from_exception(ex).format()]}")
-            if len(videos_to_match) > 0:
-                upload_empty_scenes(videos_to_match)
 
 
 if __name__ == "__main__":
