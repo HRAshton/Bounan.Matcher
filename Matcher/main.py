@@ -114,12 +114,16 @@ def _process_videos(videos_to_match: List[VideoKey]) -> None:
             logger.info("Batch processed.")
         except Exception as e:
             logger.error(f"Error occurred while processing batch: {e}")
+            keys = [VideoKey(video.my_anime_list_id, video.dub, video.episode)
+                    for video in batch]
+            upload_empty_scenes(keys)
 
 
 def main():
     while True:
         logger.info("Getting the data...")
 
+        videos_to_match: List[VideoKey] = []
         try:
             videos_to_match_res = AniMenClient.get_videos_to_match()
             videos_to_match = videos_to_match_res.videos_to_match
@@ -135,6 +139,8 @@ def main():
         except Exception as ex:
             logger.error(f"An error occurred: {ex}. "
                          f"{[x for x in traceback.TracebackException.from_exception(ex).format()]}")
+            if len(videos_to_match) > 0:
+                upload_empty_scenes(videos_to_match)
 
 
 if __name__ == "__main__":
