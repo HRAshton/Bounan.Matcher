@@ -145,7 +145,7 @@ def _fix_endings(endings: List[Interval],
     return fixed_endings
 
 
-def _filter_scene(scene: Interval) -> Interval | None:
+def _filter_scene(scene: Interval | None) -> Interval | None:
     return (scene
             if scene is not None and scene.end - scene.start >= Config.min_scene_length_secs
             else None)
