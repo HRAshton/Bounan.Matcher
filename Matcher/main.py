@@ -53,7 +53,7 @@ def _get_videos_to_process(videos_to_match: List[VideoKey]) -> List[AvailableVid
     indexes_to_process: set[int] = set()
     for video in videos_to_match:
         video_index = next(i for i, v in enumerate(available_videos)
-                           if v.episode == video.episode)
+                           if v.video_key.episode == video.episode)
         begin_index = max(0, video_index - episodes_to_match)
         end_index = min(len(available_videos), video_index + episodes_to_match + 1)
         indexes_to_add = set(range(begin_index, end_index))
@@ -76,7 +76,7 @@ def _process_batch(videos_to_process: List[AvailableVideo]) -> None:
     logger.info(f"Scenes by video: {scenes_by_video}")
     if scenes_by_video is None:
         logger.warning("Error occurred while processing videos. Uploading empty scenes...")
-        video_keys = [VideoKey(video.my_anime_list_id, video.dub, video.episode)
+        video_keys = [video.video_key
                       for video in videos_to_process]
         upload_empty_scenes(video_keys)
         return
@@ -114,8 +114,7 @@ def _process_videos(videos_to_match: List[VideoKey]) -> None:
             logger.info("Batch processed.")
         except Exception as e:
             logger.error(f"Error occurred while processing batch: {e}")
-            keys = [VideoKey(video.my_anime_list_id, video.dub, video.episode)
-                    for video in batch]
+            keys = [video.video_key for video in batch]
             upload_empty_scenes(keys)
 
 

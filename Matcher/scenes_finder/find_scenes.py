@@ -11,7 +11,7 @@ from series_intro_recognizer.processors.audio_files import recognise_from_audio_
 
 from Common.py.models import VideoKey, Interval, Scenes
 from LoanApi.LoanApi.get_playlist import get_playlist
-from LoanApi.LoanApi.models import AvailableVideo
+from LoanApi.LoanApi.models import AvailableVideo, DownloadableVideo
 from Matcher.config.Config import Config
 from Matcher.scenes_finder.audio_provider import get_wav_iter, get_truncated_durations
 
@@ -24,7 +24,7 @@ DEFAULT_CONFIG = SirConfig(series_window=Config.episodes_to_match,
 def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey, Scenes]] | None:
     logger.debug("Processing videos")
 
-    playlists_and_durations = [_get_playlist_and_duration(video)
+    playlists_and_durations = [_get_playlist_and_duration(video.download_info)
                                for video in videos_to_process]
     if None in playlists_and_durations:
         return None
@@ -42,14 +42,13 @@ def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey,
         """
         scenes = _combine_scenes(opening, ending, total_duration)
 
-        video_key = VideoKey(video.my_anime_list_id, video.dub, video.episode)
         rounded_scenes = _round_scenes(scenes)
-        all_scenes.append((video_key, rounded_scenes))
+        all_scenes.append((video.video_key, rounded_scenes))
 
     return all_scenes
 
 
-def _get_playlist_and_duration(video: AvailableVideo) -> Tuple[m3u8.M3U8, float] | None:
+def _get_playlist_and_duration(video: DownloadableVideo) -> Tuple[m3u8.M3U8, float] | None:
     playlist_content = get_playlist(video)
     playlist = m3u8.loads(playlist_content)
     if not playlist.segments:
