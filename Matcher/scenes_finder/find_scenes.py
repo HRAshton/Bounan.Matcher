@@ -29,23 +29,24 @@ def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey,
     if None in playlists_and_durations:
         return None
 
+    video_keys = [video.video_key for video in videos_to_process]
+    all_scenes = _get_scenes_by_playlists(playlists_and_durations)
+    result = list(zip(video_keys, all_scenes))
+
+    return result
+
+
+def _get_scenes_by_playlists(playlists_and_durations):
     openings = _get_openings(playlists_and_durations)
     endings = _get_endings(playlists_and_durations)
 
-    all_scenes = []
-    zipped = list(zip(videos_to_process, playlists_and_durations, openings, endings))
-    for video, (_, total_duration), opening, ending in zipped:
-        """
-        1. Set field to None if there is no scene.
-        2. Extend scenes to the beginning and the end of the video.
-        3. Calculate the scene after the ending.
-        """
+    result = []
+    for (_, total_duration), opening, ending in zip(playlists_and_durations, openings, endings):
         scenes = _combine_scenes(opening, ending, total_duration)
-
         rounded_scenes = _round_scenes(scenes)
-        all_scenes.append((video.video_key, rounded_scenes))
+        result.append(rounded_scenes)
 
-    return all_scenes
+    return result
 
 
 def _get_playlist_and_duration(video: DownloadableVideo) -> Tuple[m3u8.M3U8, float] | None:
@@ -92,6 +93,11 @@ def _get_endings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Inte
 
 
 def _combine_scenes(opening: Interval, ending: Interval, total_duration: float) -> Scenes:
+    """
+    1. Set field to None if there is no scene.
+    2. Extend scenes to the beginning and the end of the video.
+    3. Calculate the scene after the ending.
+    """
     new_opening = _valid_or_none(opening)
     new_ending = _valid_or_none(ending)
 
