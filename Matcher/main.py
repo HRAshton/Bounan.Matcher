@@ -1,5 +1,3 @@
-import traceback
-
 from dotenv import load_dotenv
 from retry import retry
 
@@ -17,7 +15,7 @@ from Matcher import SqsClient
 from Matcher.AniMenClient import AniMenClient
 from Matcher.config.Config import Config
 from Matcher.matcher_logger import setup_logging
-from scenes_finder.find_scenes import find_scenes
+from Matcher.scenes_finder.find_scenes import find_scenes
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +51,7 @@ def _get_videos_to_process(videos_to_match: List[VideoKey]) -> List[AvailableVid
     indexes_to_process: set[int] = set()
     for video in videos_to_match:
         video_index = next(i for i, v in enumerate(available_videos)
-                           if v.video_key.episode == video.episode)
+                           if v.episode == video.episode)
         begin_index = max(0, video_index - episodes_to_match)
         end_index = min(len(available_videos), video_index + episodes_to_match + 1)
         indexes_to_add = set(range(begin_index, end_index))
@@ -74,12 +72,6 @@ def _get_scenes_to_upload(scenes_by_video: List[Tuple[VideoKey, Scenes]]) -> Mat
 def _process_batch(videos_to_process: List[AvailableVideo]) -> None:
     scenes_by_video = find_scenes(videos_to_process)
     logger.info(f"Scenes by video: {scenes_by_video}")
-    if scenes_by_video is None:
-        logger.warning("Error occurred while processing videos. Uploading empty scenes...")
-        video_keys = [video.video_key
-                      for video in videos_to_process]
-        upload_empty_scenes(video_keys)
-        return
 
     scenes_to_upload = _get_scenes_to_upload(scenes_by_video)
     logger.info(f"Scenes to upload ({len(scenes_to_upload.items)}): {scenes_to_upload.items}")
@@ -114,7 +106,8 @@ def _process_videos(videos_to_match: List[VideoKey]) -> None:
             logger.info("Batch processed.")
         except Exception as e:
             logger.error(f"Error occurred while processing batch: {e}")
-            keys = [video.video_key for video in batch]
+            keys = [VideoKey(video.my_anime_list_id, video.dub, video.episode)
+                    for video in batch]
             upload_empty_scenes(keys)
 
 

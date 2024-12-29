@@ -21,22 +21,37 @@ DEFAULT_CONFIG = SirConfig(series_window=Config.episodes_to_match,
                            save_intermediate_results=False)
 
 
-def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey, Scenes]] | None:
+def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey, Scenes]]:
     logger.debug("Processing videos")
 
-    playlists_and_durations = [_get_playlist_and_duration(video.download_info)
+    playlists_and_durations = [_get_playlist_and_duration(video)
                                for video in videos_to_process]
-    if None in playlists_and_durations:
-        return None
 
-    video_keys = [video.video_key for video in videos_to_process]
-    all_scenes = _get_scenes_by_playlists(playlists_and_durations)
+    empty_playlist_indexes = [i for i, playlist_and_duration in enumerate(playlists_and_durations)
+                              if playlist_and_duration is None]
+    non_empty_playlists = [playlist_and_duration
+                           for _, playlist_and_duration in enumerate(playlists_and_durations)
+                           if playlist_and_duration is not None]
+    if len(empty_playlist_indexes) > 0:
+        logger.warning(f"Skipping empty episodes: {empty_playlist_indexes}")
+
+    found_scenes = _get_scenes_by_playlists(non_empty_playlists)
+
+    all_scenes: List[Scenes] = []
+    for i, scenes in enumerate(found_scenes):
+        if i in empty_playlist_indexes:
+            all_scenes.append(Scenes(None, None, None))
+        else:
+            all_scenes.append(scenes)
+
+    video_keys = [VideoKey(video.my_anime_list_id, video.dub, video.episode)
+                  for video in videos_to_process]
     result = list(zip(video_keys, all_scenes))
 
     return result
 
 
-def _get_scenes_by_playlists(playlists_and_durations):
+def _get_scenes_by_playlists(playlists_and_durations: List[Tuple[M3U8, float]]) -> List[Scenes]:
     openings = _get_openings(playlists_and_durations)
     endings = _get_endings(playlists_and_durations)
 
