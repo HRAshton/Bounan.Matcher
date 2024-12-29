@@ -43,7 +43,8 @@ def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey,
         scenes = _combine_scenes(opening, ending, total_duration)
 
         video_key = VideoKey(video.my_anime_list_id, video.dub, video.episode)
-        all_scenes.append((video_key, scenes))
+        rounded_scenes = _round_scenes(scenes)
+        all_scenes.append((video_key, rounded_scenes))
 
     return all_scenes
 
@@ -120,13 +121,13 @@ def _fix_openings(openings: List[Interval],
     for opening, duration, (_, total_duration) in zipped:
         if opening.start < Config.scene_after_opening_threshold_secs:
             # If the beginning of the opening is close to the beginning of the video, extend it.
-            fixed_openings.append(Interval(0, round(opening.end, 2)))
+            fixed_openings.append(Interval(0, opening.end))
         elif abs(total_duration - opening.end) < Config.scene_after_opening_threshold_secs:
             # If the end of the opening is close to the end of the video, extend it to the average duration.
-            fixed_openings.append(Interval(round(opening.start, 2),
-                                           round(opening.start + median_duration, 2)))
+            fixed_openings.append(Interval(opening.start,
+                                           opening.start + median_duration))
         else:
-            fixed_openings.append(Interval(round(opening.start, 2), round(opening.end, 2)))
+            fixed_openings.append(opening)
 
     return fixed_openings
 
@@ -138,9 +139,10 @@ def _fix_endings(endings: List[Interval],
     zipped: List[tuple[Interval, float, tuple[M3U8, float]]] \
         = list(zip(endings, truncated_durations, playlists_and_durations))
     for ending, duration, (_, total_duration) in zipped:
+        # Endings are truncated from the beginning, so we need to offset them.
         offset = total_duration - duration
-        fixed_endings.append(Interval(round(ending.start + offset, 2),
-                                      round(ending.end + offset, 2)))
+        fixed_endings.append(Interval(ending.start + offset,
+                                      ending.end + offset))
 
     return fixed_endings
 
@@ -149,3 +151,13 @@ def _filter_scene(scene: Interval | None) -> Interval | None:
     return (scene
             if scene is not None and scene.end - scene.start >= Config.min_scene_length_secs
             else None)
+
+
+def _round_scenes(scenes: Scenes) -> Scenes:
+    return Scenes(_round_scene(scenes.opening),
+                  _round_scene(scenes.ending),
+                  _round_scene(scenes.scene_after_ending))
+
+
+def _round_scene(scene: Interval | None) -> Interval | None:
+    return Interval(round(scene.start, 2), round(scene.end, 2)) if scene else None
