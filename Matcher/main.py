@@ -1,5 +1,3 @@
-import traceback
-
 from dotenv import load_dotenv
 from retry import retry
 
@@ -17,7 +15,7 @@ from Matcher import SqsClient
 from Matcher.AniMenClient import AniMenClient
 from Matcher.config.Config import Config
 from Matcher.matcher_logger import setup_logging
-from scenes_finder.find_scenes import find_scenes
+from Matcher.scenes_finder.find_scenes import find_scenes
 
 logger = logging.getLogger(__name__)
 
@@ -74,12 +72,6 @@ def _get_scenes_to_upload(scenes_by_video: List[Tuple[VideoKey, Scenes]]) -> Mat
 def _process_batch(videos_to_process: List[AvailableVideo]) -> None:
     scenes_by_video = find_scenes(videos_to_process)
     logger.info(f"Scenes by video: {scenes_by_video}")
-    if scenes_by_video is None:
-        logger.warning("Error occurred while processing videos. Uploading empty scenes...")
-        video_keys = [VideoKey(video.my_anime_list_id, video.dub, video.episode)
-                      for video in videos_to_process]
-        upload_empty_scenes(video_keys)
-        return
 
     scenes_to_upload = _get_scenes_to_upload(scenes_by_video)
     logger.info(f"Scenes to upload ({len(scenes_to_upload.items)}): {scenes_to_upload.items}")

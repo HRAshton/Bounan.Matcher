@@ -11,7 +11,7 @@ from series_intro_recognizer.processors.audio_files import recognise_from_audio_
 
 from Common.py.models import VideoKey, Interval, Scenes
 from LoanApi.LoanApi.get_playlist import get_playlist
-from LoanApi.LoanApi.models import AvailableVideo
+from LoanApi.LoanApi.models import AvailableVideo, DownloadableVideo
 from Matcher.config.Config import Config
 from Matcher.scenes_finder.audio_provider import get_wav_iter, get_truncated_durations
 
@@ -21,34 +21,50 @@ DEFAULT_CONFIG = SirConfig(series_window=Config.episodes_to_match,
                            save_intermediate_results=False)
 
 
-def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey, Scenes]] | None:
+def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey, Scenes]]:
     logger.debug("Processing videos")
 
     playlists_and_durations = [_get_playlist_and_duration(video)
                                for video in videos_to_process]
-    if None in playlists_and_durations:
-        return None
 
+    empty_playlist_indexes = [i for i, playlist_and_duration in enumerate(playlists_and_durations)
+                              if playlist_and_duration is None]
+    non_empty_playlists = [playlist_and_duration
+                           for _, playlist_and_duration in enumerate(playlists_and_durations)
+                           if playlist_and_duration is not None]
+    if len(empty_playlist_indexes) > 0:
+        logger.warning(f"Skipping empty episodes: {empty_playlist_indexes}")
+
+    found_scenes = _get_scenes_by_playlists(non_empty_playlists)
+
+    all_scenes: List[Scenes] = []
+    for i, scenes in enumerate(found_scenes):
+        if i in empty_playlist_indexes:
+            all_scenes.append(Scenes(None, None, None))
+        else:
+            all_scenes.append(scenes)
+
+    video_keys = [VideoKey(video.my_anime_list_id, video.dub, video.episode)
+                  for video in videos_to_process]
+    result = list(zip(video_keys, all_scenes))
+
+    return result
+
+
+def _get_scenes_by_playlists(playlists_and_durations: List[Tuple[M3U8, float]]) -> List[Scenes]:
     openings = _get_openings(playlists_and_durations)
     endings = _get_endings(playlists_and_durations)
 
-    all_scenes = []
-    zipped = list(zip(videos_to_process, playlists_and_durations, openings, endings))
-    for video, (_, total_duration), opening, ending in zipped:
-        """
-        1. Set field to None if there is no scene.
-        2. Extend scenes to the beginning and the end of the video.
-        3. Calculate the scene after the ending.
-        """
+    result = []
+    for (_, total_duration), opening, ending in zip(playlists_and_durations, openings, endings):
         scenes = _combine_scenes(opening, ending, total_duration)
+        rounded_scenes = _round_scenes(scenes)
+        result.append(rounded_scenes)
 
-        video_key = VideoKey(video.my_anime_list_id, video.dub, video.episode)
-        all_scenes.append((video_key, scenes))
-
-    return all_scenes
+    return result
 
 
-def _get_playlist_and_duration(video: AvailableVideo) -> Tuple[m3u8.M3U8, float] | None:
+def _get_playlist_and_duration(video: DownloadableVideo) -> Tuple[m3u8.M3U8, float] | None:
     playlist_content = get_playlist(video)
     playlist = m3u8.loads(playlist_content)
     if not playlist.segments:
@@ -92,19 +108,25 @@ def _get_endings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Inte
 
 
 def _combine_scenes(opening: Interval, ending: Interval, total_duration: float) -> Scenes:
-    new_opening = opening if not math.isnan(opening.start) else None
-    new_ending = ending if not math.isnan(ending.start) else None
+    """
+    1. Set field to None if there is no scene.
+    2. Extend scenes to the beginning and the end of the video.
+    3. Calculate the scene after the ending.
+    """
+    new_opening = _valid_or_none(opening)
+    new_ending = _valid_or_none(ending)
 
+    # Calculate the scene after the ending or extend the ending.
     scene_after_ending = None
     if new_ending is not None:
-        if abs(total_duration - ending.end) > Config.scene_after_opening_threshold_secs:
-            scene_after_ending = Interval(ending.end, total_duration)
+        if total_duration - new_ending.end > Config.scene_after_opening_threshold_secs:
+            scene_after_ending = Interval(new_ending.end, total_duration)
         else:
-            new_ending = Interval(ending.start, total_duration)
+            new_ending = Interval(new_ending.start, total_duration)
 
-    return Scenes(_filter_scene(new_opening),
-                  _filter_scene(new_ending),
-                  _filter_scene(scene_after_ending))
+    return Scenes(new_opening,
+                  new_ending,
+                  _valid_or_none(scene_after_ending))
 
 
 def _fix_openings(openings: List[Interval],
@@ -114,19 +136,18 @@ def _fix_openings(openings: List[Interval],
     Fix openings by extending them to the beginning or prolonging them to the median duration.
     """
     fixed_openings: List[Interval] = []
-    zipped: List[tuple[Interval, float, tuple[M3U8, float]]] \
-        = list(zip(openings, truncated_durations, playlists_and_durations))
+    zipped = list(zip(openings, truncated_durations, playlists_and_durations))
     median_duration = median([opening.end - opening.start for opening, _, _ in zipped])
     for opening, duration, (_, total_duration) in zipped:
         if opening.start < Config.scene_after_opening_threshold_secs:
             # If the beginning of the opening is close to the beginning of the video, extend it.
-            fixed_openings.append(Interval(0, round(opening.end, 2)))
+            fixed_openings.append(Interval(0, opening.end))
         elif abs(total_duration - opening.end) < Config.scene_after_opening_threshold_secs:
             # If the end of the opening is close to the end of the video, extend it to the average duration.
-            fixed_openings.append(Interval(round(opening.start, 2),
-                                           round(opening.start + median_duration, 2)))
+            fixed_openings.append(Interval(opening.start,
+                                           opening.start + median_duration))
         else:
-            fixed_openings.append(Interval(round(opening.start, 2), round(opening.end, 2)))
+            fixed_openings.append(opening)
 
     return fixed_openings
 
@@ -135,17 +156,30 @@ def _fix_endings(endings: List[Interval],
                  playlists_and_durations: List[tuple[M3U8, float]],
                  truncated_durations: List[float]) -> List[Interval]:
     fixed_endings: List[Interval] = []
-    zipped: List[tuple[Interval, float, tuple[M3U8, float]]] \
-        = list(zip(endings, truncated_durations, playlists_and_durations))
+    zipped = list(zip(endings, truncated_durations, playlists_and_durations))
     for ending, duration, (_, total_duration) in zipped:
+        # Endings are truncated from the beginning, so we need to offset them.
         offset = total_duration - duration
-        fixed_endings.append(Interval(round(ending.start + offset, 2),
-                                      round(ending.end + offset, 2)))
+        fixed_endings.append(Interval(ending.start + offset,
+                                      ending.end + offset))
 
     return fixed_endings
 
 
-def _filter_scene(scene: Interval) -> Interval | None:
+def _valid_or_none(scene: Interval | None) -> Interval | None:
     return (scene
-            if scene is not None and scene.end - scene.start >= Config.min_scene_length_secs
+            if (scene is not None
+                and not math.isnan(scene.start)
+                and not math.isnan(scene.end)
+                and scene.end - scene.start >= Config.min_scene_length_secs)
             else None)
+
+
+def _round_scenes(scenes: Scenes) -> Scenes:
+    return Scenes(_round_scene(scenes.opening),
+                  _round_scene(scenes.ending),
+                  _round_scene(scenes.scene_after_ending))
+
+
+def _round_scene(scene: Interval | None) -> Interval | None:
+    return Interval(round(scene.start, 2), round(scene.end, 2)) if scene else None

@@ -45,6 +45,7 @@ def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[st
 
 def get_truncated_durations() -> List[float]:
     global truncated_durations_per_episode
+    assert truncated_durations_per_episode
     return truncated_durations_per_episode
 
 
