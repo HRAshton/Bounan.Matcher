@@ -1,3 +1,5 @@
+import traceback
+
 from dotenv import load_dotenv
 from retry import retry
 
@@ -34,7 +36,7 @@ def _ensure_if_all_videos_for_same_group(videos_to_match: List[VideoKey]) -> Non
             raise ValueError("All videos are not for the same group.")
 
 
-def _get_videos_to_process(videos_to_match: List[VideoKey]) -> List[AvailableVideo] | None:
+def _get_videos_to_process(videos_to_match: List[VideoKey]) -> List[AvailableVideo]:
     """
     Get videos to process.
     Returns the same list of videos extended with N more videos before and after
@@ -42,24 +44,27 @@ def _get_videos_to_process(videos_to_match: List[VideoKey]) -> List[AvailableVid
     :param videos_to_match: List of videos to match
     :return: List of videos to process
     """
+    assert len(videos_to_match) > 0
+
     available_videos = get_available_videos(videos_to_match[0].my_anime_list_id,
                                             videos_to_match[0].dub)
-    if len(available_videos) < Config.episodes_to_match:
-        return None
 
     episodes_to_match = Config.episodes_to_match
     indexes_to_process: set[int] = set()
+    episode_index_map = {video.episode: idx
+                         for idx, video in enumerate(available_videos)}
+
     for video in videos_to_match:
-        video_index = next(i for i, v in enumerate(available_videos)
-                           if v.episode == video.episode)
-        begin_index = max(0, video_index - episodes_to_match)
-        end_index = min(len(available_videos), video_index + episodes_to_match + 1)
-        indexes_to_add = set(range(begin_index, end_index))
-        indexes_to_process.update(indexes_to_add)
+        if video.episode not in episode_index_map:
+            continue
 
-    videos_to_process = (available_videos[i] for i in sorted(indexes_to_process))
+        video_index = episode_index_map[video.episode]
+        start_idx = max(0, video_index - episodes_to_match)
+        end_idx = min(len(available_videos), video_index + episodes_to_match + 1)
 
-    return list(videos_to_process)
+        indexes_to_process.update(set(range(start_idx, end_idx)))
+
+    return [available_videos[i] for i in sorted(indexes_to_process)]
 
 
 def _get_scenes_to_upload(scenes_by_video: List[Tuple[VideoKey, Scenes]]) -> MatcherResultRequest:
@@ -85,10 +90,16 @@ def _process_videos(videos_to_match: List[VideoKey]) -> None:
     _ensure_if_all_videos_for_same_group(videos_to_match)
 
     videos_to_process = _get_videos_to_process(videos_to_match)
-    if videos_to_process is None:
+    if len(videos_to_process) < Config.episodes_to_match:
         logger.info("Not enough videos to process. Waiting for new videos...")
         upload_empty_scenes(videos_to_match)
         return
+
+    unavailable_videos = [video for video in videos_to_match
+                          if video.episode not in [v.episode for v in videos_to_process]]
+    if len(unavailable_videos) > 0:
+        logger.info(f"{len(unavailable_videos)}/{len(videos_to_match)} videos are unavailable: {unavailable_videos}")
+        upload_empty_scenes(unavailable_videos)
 
     logger.info(f"Videos to process ({len(videos_to_process)}): {videos_to_process}")
 
