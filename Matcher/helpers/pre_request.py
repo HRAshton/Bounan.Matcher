@@ -1,7 +1,7 @@
 import concurrent.futures
 import logging
 from concurrent.futures import Future
-from typing import Callable, TypeVar, Dict
+from typing import Callable, TypeVar
 
 from Matcher.matcher_logger import setup_logging
 
@@ -11,7 +11,7 @@ R = TypeVar('R')
 USE_MULTIPROCESSING = True  # Use False to prevent PyCharm debug issues
 
 pool = concurrent.futures.ProcessPoolExecutor(max_workers=1)
-results: Dict[int, Callable[[], R]] = {}
+results: dict[int, Callable[[], R]] = {}
 
 logger = logging.getLogger(__name__)
 

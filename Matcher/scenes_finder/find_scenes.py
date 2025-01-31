@@ -2,7 +2,6 @@ import logging
 import math
 import warnings
 from statistics import median
-from typing import List, Tuple
 
 import m3u8
 from m3u8 import M3U8
@@ -13,6 +12,7 @@ from Common.py.models import VideoKey, Interval, Scenes
 from LoanApi.LoanApi.get_playlist import get_playlist
 from LoanApi.LoanApi.models import AvailableVideo, DownloadableVideo
 from Matcher.config.Config import Config
+from Matcher.helpers.type_checks import not_null
 from Matcher.scenes_finder.audio_provider import get_wav_iter, get_truncated_durations
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ DEFAULT_CONFIG = SirConfig(series_window=Config.episodes_to_match,
                            save_intermediate_results=False)
 
 
-def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey, Scenes]]:
+def find_scenes(videos_to_process: list[AvailableVideo]) -> list[tuple[VideoKey, Scenes]]:
     logger.debug("Processing videos")
 
     playlists_and_durations = [_get_playlist_and_duration(video)
@@ -37,7 +37,7 @@ def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey,
 
     found_scenes = _get_scenes_by_playlists(non_empty_playlists)
 
-    all_scenes: List[Scenes] = []
+    all_scenes: list[Scenes] = []
     for i, scenes in enumerate(found_scenes):
         if i in empty_playlist_indexes:
             all_scenes.append(Scenes(None, None, None))
@@ -51,7 +51,7 @@ def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey,
     return result
 
 
-def _get_scenes_by_playlists(playlists_and_durations: List[Tuple[M3U8, float]]) -> List[Scenes]:
+def _get_scenes_by_playlists(playlists_and_durations: list[tuple[M3U8, float]]) -> list[Scenes]:
     openings = _get_openings(playlists_and_durations)
     endings = _get_endings(playlists_and_durations)
 
@@ -64,14 +64,14 @@ def _get_scenes_by_playlists(playlists_and_durations: List[Tuple[M3U8, float]]) 
     return result
 
 
-def _get_playlist_and_duration(video: DownloadableVideo) -> Tuple[m3u8.M3U8, float] | None:
+def _get_playlist_and_duration(video: DownloadableVideo) -> tuple[m3u8.M3U8, float] | None:
     playlist_content = get_playlist(video)
     playlist = m3u8.loads(playlist_content)
     if not playlist.segments:
         logger.warning(f"Skipping video {video.id} because it has no segments")
         return None
 
-    total_duration = sum([segment.duration for segment in playlist.segments])
+    total_duration = sum([not_null(segment.duration) for segment in playlist.segments])
     if total_duration < 2 * Config.seconds_to_match:
         logger.warning(f"Skipping video {video.id} because it's too short ({total_duration}s)")
         return None
@@ -79,7 +79,7 @@ def _get_playlist_and_duration(video: DownloadableVideo) -> Tuple[m3u8.M3U8, flo
     return playlist, total_duration
 
 
-def _get_openings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Interval]:
+def _get_openings(playlists_and_durations: list[tuple[M3U8, float]]) -> list[Interval]:
     playlists = [playlist for playlist, _ in playlists_and_durations]
     opening_iter = get_wav_iter(playlists, True)
     with warnings.catch_warnings():
@@ -88,12 +88,12 @@ def _get_openings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Int
         openings = [Interval(opening.start, opening.end) for opening in lib_openings]
 
     truncated_durations = get_truncated_durations()
-    fixed_openings: List[Interval] = _fix_openings(openings, playlists_and_durations, truncated_durations)
+    fixed_openings: list[Interval] = _fix_openings(openings, playlists_and_durations, truncated_durations)
 
     return fixed_openings
 
 
-def _get_endings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Interval]:
+def _get_endings(playlists_and_durations: list[tuple[M3U8, float]]) -> list[Interval]:
     playlists = [playlist for playlist, _ in playlists_and_durations]
     ending_iter = get_wav_iter(playlists, False)
     with warnings.catch_warnings():
@@ -102,7 +102,7 @@ def _get_endings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Inte
         endings = [Interval(ending.start, ending.end) for ending in lib_endings]
 
     truncated_durations = get_truncated_durations()
-    fixed_endings: List[Interval] = _fix_endings(endings, playlists_and_durations, truncated_durations)
+    fixed_endings: list[Interval] = _fix_endings(endings, playlists_and_durations, truncated_durations)
 
     return fixed_endings
 
@@ -129,13 +129,13 @@ def _combine_scenes(opening: Interval, ending: Interval, total_duration: float) 
                   _valid_or_none(scene_after_ending))
 
 
-def _fix_openings(openings: List[Interval],
-                  playlists_and_durations: List[tuple[M3U8, float]],
-                  truncated_durations: List[float]) -> List[Interval]:
+def _fix_openings(openings: list[Interval],
+                  playlists_and_durations: list[tuple[M3U8, float]],
+                  truncated_durations: list[float]) -> list[Interval]:
     """
     Fix openings by extending them to the beginning or prolonging them to the median duration.
     """
-    fixed_openings: List[Interval] = []
+    fixed_openings: list[Interval] = []
     zipped = list(zip(openings, truncated_durations, playlists_and_durations))
     median_duration = median([opening.end - opening.start for opening, _, _ in zipped])
     for opening, duration, (_, total_duration) in zipped:
@@ -152,10 +152,10 @@ def _fix_openings(openings: List[Interval],
     return fixed_openings
 
 
-def _fix_endings(endings: List[Interval],
-                 playlists_and_durations: List[tuple[M3U8, float]],
-                 truncated_durations: List[float]) -> List[Interval]:
-    fixed_endings: List[Interval] = []
+def _fix_endings(endings: list[Interval],
+                 playlists_and_durations: list[tuple[M3U8, float]],
+                 truncated_durations: list[float]) -> list[Interval]:
+    fixed_endings: list[Interval] = []
     zipped = list(zip(endings, truncated_durations, playlists_and_durations))
     for ending, duration, (_, total_duration) in zipped:
         # Endings are truncated from the beginning, so we need to offset them.

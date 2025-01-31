@@ -9,7 +9,7 @@ client = boto3.client('sqs')
 logger = logging.getLogger(__name__)
 
 
-def wait_for_notification():
+def wait_for_notification() -> None:
     """
     Wait for a notification from the SQS queue
     """

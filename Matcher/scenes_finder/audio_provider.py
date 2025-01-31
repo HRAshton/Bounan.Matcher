@@ -1,22 +1,23 @@
 import logging
 import os
-from typing import List, Tuple, Iterator
+from typing import Iterator
 
 import m3u8
 
 from Matcher.config.Config import Config
-from Matcher.scenes_finder.audio_merger import download_and_merge_parts
 from Matcher.helpers.pre_request import pre_request, get_result, init_pre_request_queue
+from Matcher.helpers.type_checks import not_null
+from Matcher.scenes_finder.audio_merger import download_and_merge_parts
 
 DELETE_TEMP_FILES = True
 
 logger = logging.getLogger(__name__)
 
 file_path_to_delete: str | None = None
-truncated_durations_per_episode: List[float] | None = None
+truncated_durations_per_episode: list[float] | None = None
 
 
-def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[str, float, float]]:
+def get_wav_iter(playlists: list[m3u8.M3U8], opening: bool) -> Iterator[tuple[str, float, float]]:
     global file_path_to_delete, truncated_durations_per_episode
 
     truncated_durations_per_episode = []
@@ -43,31 +44,32 @@ def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[st
         yield wav_path, offset, truncated_duration
 
 
-def get_truncated_durations() -> List[float]:
+def get_truncated_durations() -> list[float]:
     global truncated_durations_per_episode
     assert truncated_durations_per_episode
     return truncated_durations_per_episode
 
 
-def _get_wav(playlist: m3u8.M3U8, opening: bool, episode: int) -> Tuple[str, float]:
+def _get_wav(playlist: m3u8.M3U8, opening: bool, episode: int) -> tuple[str, float]:
     segments, current_duration = _build_segments_list(playlist, opening)
     wav_path = download_and_merge_parts(episode, segments)
     return wav_path, current_duration
 
 
-def _build_segments_list(playlist: m3u8.M3U8, opening: bool) -> Tuple[List[str], float]:
-    current_duration = 0
-    segments = []
+def _build_segments_list(playlist: m3u8.M3U8, opening: bool) -> tuple[list[str], float]:
+    current_duration = .0
+
+    segments: list[str] = []
     if opening:
         for segment in playlist.segments:
-            segments.append(segment.uri)
-            current_duration += segment.duration
+            segments.append(not_null(segment.uri))
+            current_duration += not_null(segment.duration)
             if current_duration >= Config.seconds_to_match:
                 break
     else:
         for segment in reversed(playlist.segments):
-            segments.insert(0, segment.uri)
-            current_duration += segment.duration
+            segments.insert(0, not_null(segment.uri))
+            current_duration += not_null(segment.duration)
             if current_duration >= Config.seconds_to_match:
                 break
 

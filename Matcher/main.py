@@ -8,7 +8,6 @@ from Common.py.models import VideoKey, Scenes, MatcherResultRequest, MatcherResu
 load_dotenv()
 
 import logging
-from typing import List, Tuple
 
 from Matcher.AniMenClient.AniMenClient import upload_empty_scenes, update_video_scenes
 from LoanApi.LoanApi.get_available_videos import get_available_videos
@@ -22,7 +21,7 @@ from Matcher.scenes_finder.find_scenes import find_scenes
 logger = logging.getLogger(__name__)
 
 
-def _ensure_if_all_videos_for_same_group(videos_to_match: List[VideoKey]) -> None:
+def _ensure_if_all_videos_for_same_group(videos_to_match: list[VideoKey]) -> None:
     """
     Ensure if all videos are for the same group
     :param videos_to_match: List of videos to match
@@ -36,7 +35,7 @@ def _ensure_if_all_videos_for_same_group(videos_to_match: List[VideoKey]) -> Non
             raise ValueError("All videos are not for the same group.")
 
 
-def _get_videos_to_process(videos_to_match: List[VideoKey]) -> List[AvailableVideo]:
+def _get_videos_to_process(videos_to_match: list[VideoKey]) -> list[AvailableVideo]:
     """
     Get videos to process.
     Returns the same list of videos extended with N more videos before and after
@@ -67,14 +66,14 @@ def _get_videos_to_process(videos_to_match: List[VideoKey]) -> List[AvailableVid
     return [available_videos[i] for i in sorted(indexes_to_process)]
 
 
-def _get_scenes_to_upload(scenes_by_video: List[Tuple[VideoKey, Scenes]]) -> MatcherResultRequest:
+def _get_scenes_to_upload(scenes_by_video: list[tuple[VideoKey, Scenes]]) -> MatcherResultRequest:
     items = [MatcherResultRequestItem(video_key=video_key, scenes=scenes)
              for video_key, scenes in scenes_by_video]
     return MatcherResultRequest(items=items)
 
 
 @retry(tries=2, delay=1)
-def _process_batch(videos_to_process: List[AvailableVideo]) -> None:
+def _process_batch(videos_to_process: list[AvailableVideo]) -> None:
     scenes_by_video = find_scenes(videos_to_process)
     logger.info(f"Scenes by video: {scenes_by_video}")
 
@@ -85,7 +84,7 @@ def _process_batch(videos_to_process: List[AvailableVideo]) -> None:
     logger.info("Scenes uploaded.")
 
 
-def _process_videos(videos_to_match: List[VideoKey]) -> None:
+def _process_videos(videos_to_match: list[VideoKey]) -> None:
     logger.info(f"Received {len(videos_to_match)} videos to match: {videos_to_match}.")
     _ensure_if_all_videos_for_same_group(videos_to_match)
 
@@ -122,11 +121,11 @@ def _process_videos(videos_to_match: List[VideoKey]) -> None:
             upload_empty_scenes(keys)
 
 
-def main():
+def main() -> None:
     while True:
         logger.info("Getting the data...")
 
-        videos_to_match: List[VideoKey] = []
+        videos_to_match: list[VideoKey] = []
         try:
             videos_to_match_res = AniMenClient.get_videos_to_match()
             videos_to_match = videos_to_match_res.videos_to_match
