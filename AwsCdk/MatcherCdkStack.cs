@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Amazon.CDK;
@@ -10,7 +9,6 @@ using Amazon.CDK.AWS.SNS;
 using Amazon.CDK.AWS.SNS.Subscriptions;
 using Amazon.CDK.AWS.SQS;
 using Constructs;
-using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using AlarmActions = Amazon.CDK.AWS.CloudWatch.Actions;
 using LogGroupProps = Amazon.CDK.AWS.Logs.LogGroupProps;
@@ -22,13 +20,7 @@ public sealed class MatcherCdkStack : Stack
 {
     internal MatcherCdkStack(Construct scope, string id, IStackProps? props = null) : base(scope, id, props)
     {
-        var config = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json")
-            .AddEnvironmentVariables()
-            .Build()
-            .Get<MatcherCdkStackConfig>();
-        ArgumentNullException.ThrowIfNull(config, nameof(config));
-        config.Validate();
+        var config = new MatcherCdkStackConfig("bounan:");
 
         var user = new User(this, "User");
 
@@ -40,7 +32,10 @@ public sealed class MatcherCdkStack : Stack
         SetNoLogsAlarm(config, logGroup);
         logGroup.GrantWrite(user);
 
-        var accessKey = new CfnAccessKey(this, "AccessKey", new CfnAccessKeyProps { UserName = user.UserName });
+        var accessKey = new CfnAccessKey(this, "AccessKey", new CfnAccessKeyProps
+        {
+            UserName = user.UserName
+        });
 
         Out("Config", JsonConvert.SerializeObject(config));
         Out("LogGroupName", logGroup.LogGroupName);
@@ -129,7 +124,9 @@ public sealed class MatcherCdkStack : Stack
             MetricName = "IncomingLogEvents",
             DimensionsMap = new Dictionary<string, string>
             {
-                { "LogGroupName", logGroup.LogGroupName }
+                {
+                    "LogGroupName", logGroup.LogGroupName
+                }
             },
             Statistic = "Sum",
             Period = Duration.Minutes(2),
@@ -152,6 +149,9 @@ public sealed class MatcherCdkStack : Stack
 
     private void Out(string key, string value)
     {
-        _ = new CfnOutput(this, key, new CfnOutputProps { Value = value });
+        _ = new CfnOutput(this, key, new CfnOutputProps
+        {
+            Value = value
+        });
     }
 }
