@@ -8,6 +8,7 @@ using Amazon.CDK.AWS.Logs;
 using Amazon.CDK.AWS.SNS;
 using Amazon.CDK.AWS.SNS.Subscriptions;
 using Amazon.CDK.AWS.SQS;
+using Amazon.CDK.AWS.SSM;
 using Constructs;
 using Newtonsoft.Json;
 using AlarmActions = Amazon.CDK.AWS.CloudWatch.Actions;
@@ -37,25 +38,10 @@ public sealed class MatcherCdkStack : Stack
             UserName = user.UserName
         });
 
+        var parameter = SaveParameter(accessKey, logGroup, videoRegisteredQueue, config);
+        parameter.GrantRead(user);
+
         Out("Config", JsonConvert.SerializeObject(config));
-        Out("LogGroupName", logGroup.LogGroupName);
-        Out("UserAccessKeyId", accessKey.Ref);
-        Out("UserSecretAccessKey", accessKey.AttrSecretAccessKey);
-        Out("VideoRegisteredQueueUrl", videoRegisteredQueue.QueueUrl);
-        Out(
-            "env",
-            $"""
-             AWS_DEFAULT_REGION={Region};
-             AWS_ACCESS_KEY_ID={accessKey.Ref};
-             AWS_SECRET_ACCESS_KEY={accessKey.AttrSecretAccessKey};
-             LOG_GROUP_NAME={logGroup.LogGroupName};
-             GET_SERIES_TO_MATCH_LAMBDA_NAME={config.GetSeriesToMatchLambdaName};
-             UPDATE_VIDEO_SCENES_LAMBDA_NAME={config.UpdateVideoScenesLambdaName};
-             VIDEO_REGISTERED_QUEUE_URL={videoRegisteredQueue.QueueUrl};
-             LOAN_API_TOKEN=;
-             LOG_LEVEL=INFO;
-             OMP_NUM_THREADS=1;
-             """);
     }
 
     private IQueue CreateVideoRegisteredQueue(MatcherCdkStackConfig config, IGrantable user)
@@ -145,6 +131,41 @@ public sealed class MatcherCdkStack : Stack
         var topic = new Topic(this, "NoLogAlarmSnsTopic", new TopicProps());
         topic.AddSubscription(new EmailSubscription(config.AlertEmail));
         noLogAlarm.AddAlarmAction(new AlarmActions.SnsAction(topic));
+    }
+
+    private StringParameter SaveParameter(
+        CfnAccessKey accessKey,
+        ILogGroup logGroup,
+        IQueue videoRegisteredQueue,
+        MatcherCdkStackConfig config)
+    {
+        var runtimeConfig = new
+        {
+            aws_access_key_id = accessKey.Ref,
+            aws_secret_access_key = accessKey.AttrSecretAccessKey,
+            log_group_name = logGroup.LogGroupName,
+            log_level = "INFO",
+            episodes_to_match = 5,
+            seconds_to_match = 6 * 60,
+            notification_queue_url = videoRegisteredQueue.QueueUrl,
+            get_series_to_match_lambda_name = config.GetSeriesToMatchLambdaName,
+            update_video_scenes_lambda_name = config.UpdateVideoScenesLambdaName,
+            temp_dir = "/tmp",
+            download_threads = 12,
+            download_max_retries_for_ts = 3,
+            scene_after_opening_threshold_secs = 4,
+            min_scene_length_secs = 20,
+            operating_log_rate_per_minute = 1,
+            batch_size = 10,
+        };
+
+        var json = JsonConvert.SerializeObject(runtimeConfig, Formatting.Indented);
+
+        return new StringParameter(this, "runtime_config", new StringParameterProps
+        {
+            ParameterName = "/bounan/matcher/runtime_config",
+            StringValue = json,
+        });
     }
 
     private void Out(string key, string value)
