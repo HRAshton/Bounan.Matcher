@@ -13,12 +13,15 @@ public class MatcherCdkStackConfig
             .Build();
 
         AlertEmail = GetCdkValue(cdkPrefix, "alert-email", localConfig);
+        LoanApiToken = GetCdkValue(cdkPrefix, "loan-api-token", localConfig);
         GetSeriesToMatchLambdaName = GetCdkValue(cdkPrefix, "get-series-to-match", localConfig);
         UpdateVideoScenesLambdaName = GetCdkValue(cdkPrefix, "update-video-scenes", localConfig);
         VideoRegisteredTopicArn = GetCdkValue(cdkPrefix, "video-registered-sns-topic-arn", localConfig);
     }
 
     public string AlertEmail { get; }
+
+    public string LoanApiToken { get; }
 
     public string GetSeriesToMatchLambdaName { get; }
 
