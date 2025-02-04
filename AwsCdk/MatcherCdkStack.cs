@@ -42,6 +42,11 @@ public sealed class MatcherCdkStack : Stack
         parameter.GrantRead(user);
 
         Out("Config", JsonConvert.SerializeObject(config));
+        Out(
+            "dotenv",
+            $"AWS_ACCESS_KEY_ID={accessKey.Ref};\n"
+            + $"AWS_SECRET_ACCESS_KEY={accessKey.AttrSecretAccessKey};\n"
+            + $"AWS_DEFAULT_REGION={this.Region};\n");
     }
 
     private IQueue CreateVideoRegisteredQueue(MatcherCdkStackConfig config, IGrantable user)
@@ -141,8 +146,9 @@ public sealed class MatcherCdkStack : Stack
     {
         var runtimeConfig = new
         {
-            aws_access_key_id = accessKey.Ref,
-            aws_secret_access_key = accessKey.AttrSecretAccessKey,
+            aws_access_key_id = "Should be stored locally",
+            aws_secret_access_key = "Should be stored locally",
+            loan_api_token = config.LoanApiToken,
             log_group_name = logGroup.LogGroupName,
             log_level = "INFO",
             episodes_to_match = 5,
