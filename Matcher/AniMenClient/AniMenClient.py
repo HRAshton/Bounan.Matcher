@@ -24,7 +24,7 @@ def update_video_scenes(data: MatcherResultRequest) -> None:
     payload = data.to_json()
 
     lambda_client.invoke(
-        FunctionName=Config.Config.update_video_scenes_lambda_name,
+        FunctionName=Config.update_video_scenes_lambda_name,
         InvocationType='RequestResponse',
         Payload=payload
     )

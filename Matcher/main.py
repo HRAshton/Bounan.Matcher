@@ -144,6 +144,7 @@ def main():
 
 if __name__ == "__main__":
     load_dotenv()
+    Config.initialize_from_env()
     setup_logging()
     logger.info("Starting the data processing...")
     main()

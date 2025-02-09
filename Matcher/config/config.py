@@ -5,69 +5,92 @@ T = TypeVar("T")
 
 
 class _Config:
+    _configuration: dict[str, str] | None
+
+    def initialize_from_env(self) -> None:
+        runtime_config_json: dict[str, str] = {}
+        configProperties = _Config.__dict__.keys()
+        for key in configProperties:
+            for env_key in os.environ.keys():
+                if key.lower() == env_key.lower():
+                    runtime_config_json[key] = os.environ[env_key]
+
+        self._configuration = runtime_config_json
+
+    def initialize_from_dict(self, configuration: dict[str, str]) -> None:
+        self._configuration = configuration
+
+    def export(self) -> dict[str, str]:
+        assert self._configuration is not None
+        return dict(self._configuration)
+
+    @property
+    def loan_api_token(self) -> str:
+        return self._get_value('loan_api_token')
+
     @property
     def log_group_name(self) -> str:
-        return _Config.get_value('LOG_GROUP_NAME')
+        return self._get_value('log_group_name')
 
     @property
     def log_level(self) -> str:
-        return _Config.get_value('LOG_LEVEL', 'INFO')
+        return self._get_value('log_level', 'INFO')
 
     @property
     def episodes_to_match(self) -> int:
-        return int(_Config.get_value('EPISODES_TO_MATCH', 5))
+        return int(self._get_value('episodes_to_match', 5))
 
     @property
     def seconds_to_match(self) -> int:
-        return int(_Config.get_value('SECONDS_TO_MATCH', 6 * 60))
+        return int(self._get_value('seconds_to_match', 6 * 60))
 
     @property
     def notification_queue_url(self) -> str:
-        return _Config.get_value('NOTIFICATION_QUEUE_URL')
+        return self._get_value('notification_queue_url')
 
     @property
     def get_series_to_match_lambda_name(self) -> str:
-        return _Config.get_value('GET_SERIES_TO_MATCH_LAMBDA_NAME')
+        return self._get_value('get_series_to_match_lambda_name')
 
     @property
     def update_video_scenes_lambda_name(self) -> str:
-        return _Config.get_value('UPDATE_VIDEO_SCENES_LAMBDA_NAME')
+        return self._get_value('update_video_scenes_lambda_name')
 
     @property
     def temp_dir(self) -> str:
-        return _Config.get_value('TEMP_DIR', '/tmp')
+        return self._get_value('temp_dir', '/tmp')
 
     @property
     def download_threads(self) -> int:
-        return int(_Config.get_value('DOWNLOAD_THREADS', 12))
+        return int(self._get_value('download_threads', 12))
 
     @property
     def download_max_retries_for_ts(self) -> int:
-        return int(_Config.get_value('DOWNLOAD_MAX_RETRIES_FOR_TS', 3))
+        return int(self._get_value('download_max_retries_for_ts', 3))
 
     @property
     def scene_after_opening_threshold_secs(self) -> int:
-        return int(_Config.get_value('SCENE_AFTER_OPENING_THRESHOLD', 4))
+        return int(self._get_value('scene_after_opening_threshold_secs', 4))
 
     @property
     def min_scene_length_secs(self) -> int:
-        return int(_Config.get_value('MIN_SCENE_LENGTH_SECS', 20))
+        return int(self._get_value('min_scene_length_secs', 20))
 
     @property
     def operating_log_rate_per_minute(self) -> int:
-        return int(_Config.get_value('OPERATING_LOG_RATE_PER_MINUTE', 1))
+        return int(self._get_value('operating_log_rate_per_minute', 1))
 
     @property
     def batch_size(self) -> int:
         # 20 is set to avoid rate limits on Publisher side.
         # It will automatically expand up to 10*2-1=19
         # if last batch contains less than 10 videos.
-        return int(_Config.get_value('BATCH_SIZE', 10))
+        return int(self._get_value('batch_size', 10))
 
-    @staticmethod
-    def get_value(key: str, default: T | None = None) -> str | T:
-        value = os.environ.get(key, default)
-        assert value is not None, f"Environment variable {key} is not set"
+    def _get_value(self, key: str, default: T | None = None) -> str | T:
+        assert self._configuration is not None, "Configuration is not initialized."
+        value = os.environ.get(key) or self._configuration.get(key, default)
+        assert value is not None, f"Configuration value for '{key}' is not set."
         return value
 
 
