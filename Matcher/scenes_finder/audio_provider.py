@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List, Tuple, Iterator
+from typing import Iterator
 
 import m3u8
 
@@ -14,10 +14,10 @@ DELETE_TEMP_FILES = True
 logger = logging.getLogger(__name__)
 
 file_path_to_delete: str | None = None
-truncated_durations_per_episode: List[float] | None = None
+truncated_durations_per_episode: list[float] | None = None
 
 
-def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[str, float, float]]:
+def get_wav_iter(playlists: list[m3u8.M3U8], opening: bool) -> Iterator[tuple[str, float, float]]:
     global file_path_to_delete, truncated_durations_per_episode
 
     truncated_durations_per_episode = []
@@ -25,8 +25,8 @@ def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[st
         return
 
     config_dict = Config.export()
-    with PreRequestQueue() as queue:
-        queue.pre_request(0, _get_wav, config_dict, playlists[0], opening, 0)
+    with PreRequestQueue(config_dict) as queue:
+        queue.pre_request(0, _get_wav, playlists[0], opening, 0)
 
         for i, playlist in enumerate(playlists):
             if file_path_to_delete is not None and DELETE_TEMP_FILES and os.path.exists(file_path_to_delete):
@@ -34,7 +34,8 @@ def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[st
 
             wav_path, segments_duration = queue.get_result(i)
             if i + 1 < len(playlists):
-                queue.pre_request(i + 1, _get_wav, config_dict, playlists[i + 1], opening, i + 1)
+                # Start downloading next episode in parallel in advance
+                queue.pre_request(i + 1, _get_wav, playlists[i + 1], opening, i + 1)
 
             truncated_duration = min(segments_duration, Config.seconds_to_match)
             offset = 0 if opening else max(segments_duration - Config.seconds_to_match, 0)
@@ -45,19 +46,21 @@ def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[st
             yield wav_path, offset, truncated_duration
 
 
-def get_truncated_durations() -> List[float]:
+def get_truncated_durations() -> list[float]:
     global truncated_durations_per_episode
     assert truncated_durations_per_episode
     return truncated_durations_per_episode
 
 
-def _get_wav(playlist: m3u8.M3U8, opening: bool, episode: int) -> Tuple[str, float]:
+def _get_wav(playlist: m3u8.M3U8,
+             opening: bool,
+             episode: int) -> tuple[str, float]:
     segments, current_duration = _build_segments_list(playlist, opening)
     wav_path = download_and_merge_parts(episode, segments)
     return wav_path, current_duration
 
 
-def _build_segments_list(playlist: m3u8.M3U8, opening: bool) -> Tuple[List[str], float]:
+def _build_segments_list(playlist: m3u8.M3U8, opening: bool) -> tuple[list[str], float]:
     current_duration = .0
     segments: list[str] = []
     if opening:
