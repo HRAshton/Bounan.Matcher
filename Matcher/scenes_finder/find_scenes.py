@@ -12,7 +12,7 @@ from series_intro_recognizer.processors.audio_files import recognise_from_audio_
 from Common.py.models import VideoKey, Interval, Scenes
 from LoanApi.LoanApi.get_playlist import get_playlist
 from LoanApi.LoanApi.models import AvailableVideo, DownloadableVideo
-from Matcher.config.Config import Config
+from Matcher.config.config import Config
 from Matcher.scenes_finder.audio_provider import get_wav_iter, get_truncated_durations
 
 logger = logging.getLogger(__name__)

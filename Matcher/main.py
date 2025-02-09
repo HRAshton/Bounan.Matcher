@@ -15,7 +15,7 @@ from LoanApi.LoanApi.get_available_videos import get_available_videos
 from LoanApi.LoanApi.models import AvailableVideo
 from Matcher import SqsClient
 from Matcher.AniMenClient import AniMenClient
-from Matcher.config.Config import Config
+from Matcher.config.config import Config
 from Matcher.matcher_logger import setup_logging
 from Matcher.scenes_finder.find_scenes import find_scenes
 

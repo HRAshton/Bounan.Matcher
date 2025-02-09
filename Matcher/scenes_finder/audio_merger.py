@@ -8,7 +8,7 @@ import ffmpeg
 from aiohttp import ClientSession
 from retry.api import retry_call
 
-from Matcher.config.Config import Config
+from Matcher.config.config import Config
 
 logger = logging.getLogger(__name__)
 
