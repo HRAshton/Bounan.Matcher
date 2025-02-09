@@ -111,9 +111,8 @@ class _Config:
     @property
     @_add_name
     def batch_size(self, name: str = "") -> int:
-        # 20 is set to avoid rate limits on Publisher side. -- TODO: Seriously?
-        # It will automatically expand up to 10*2-1=19
-        # if last batch contains less than 10 videos.
+        # It will automatically expand up to N*2-1=19 if the last batch contains
+        # less than N videos (N:10 -> B:19).
         return int(self._get_value(name, 10))
 
     def _get_value(self, key: str, default: T | None = None) -> str:
