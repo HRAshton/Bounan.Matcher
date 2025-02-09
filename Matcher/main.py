@@ -9,8 +9,7 @@ from Common.py.models import VideoKey, Scenes, MatcherResultRequest, MatcherResu
 from LoanApi.LoanApi.get_available_videos import get_available_videos
 from LoanApi.LoanApi.models import AvailableVideo
 from Matcher import SqsClient
-from Matcher.AniMenClient import AniMenClient
-from Matcher.AniMenClient.AniMenClient import upload_empty_scenes, update_video_scenes
+from Matcher.clients.animan_client import upload_empty_scenes, update_video_scenes, get_videos_to_match
 from Matcher.config.config import Config
 from Matcher.matcher_logger import setup_logging
 from Matcher.scenes_finder.find_scenes import find_scenes
@@ -125,7 +124,7 @@ def main():
 
         videos_to_match: List[VideoKey] = []
         try:
-            videos_to_match_res = AniMenClient.get_videos_to_match()
+            videos_to_match_res = get_videos_to_match()
             videos_to_match = videos_to_match_res.videos_to_match
             if len(videos_to_match) == 0:
                 logger.info("No videos to match. Waiting for new videos...")
