@@ -3,7 +3,7 @@ from typing import List
 import boto3
 
 from Common.py.models import VideoKey, Scenes, MatcherResponse, MatcherResultRequest, MatcherResultRequestItem
-from Matcher.config import Config
+from Matcher.config import config
 
 lambda_client = boto3.client('lambda')
 

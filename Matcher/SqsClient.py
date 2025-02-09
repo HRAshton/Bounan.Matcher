@@ -3,7 +3,7 @@ import time
 
 import boto3
 
-from Matcher.config.Config import Config
+from Matcher.config.config import Config
 
 client = boto3.client('sqs')
 logger = logging.getLogger(__name__)

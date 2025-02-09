@@ -2,7 +2,7 @@ import logging
 
 import watchtower
 
-from Matcher.config.Config import Config
+from Matcher.config.config import Config
 
 fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
