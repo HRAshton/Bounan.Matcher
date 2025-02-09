@@ -15,13 +15,13 @@ def get_videos_to_match() -> MatcherResponse:
     )
     payload = response['Payload'].read().decode('utf-8')
 
-    matcher_response = MatcherResponse.schema().loads(payload)
+    matcher_response = MatcherResponse.schema().loads(payload)  # type: ignore
 
     return matcher_response
 
 
 def update_video_scenes(data: MatcherResultRequest) -> None:
-    payload = data.to_json()
+    payload = data.to_json()  # type: ignore
 
     lambda_client.invoke(
         FunctionName=Config.update_video_scenes_lambda_name,

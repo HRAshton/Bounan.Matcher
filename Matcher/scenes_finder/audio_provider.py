@@ -5,6 +5,7 @@ from typing import List, Tuple, Iterator
 import m3u8
 
 from Matcher.config.config import Config
+from Matcher.helpers.not_none import not_none
 from Matcher.helpers.pre_request import PreRequestQueue
 from Matcher.scenes_finder.audio_merger import download_and_merge_parts
 
@@ -56,18 +57,18 @@ def _get_wav(playlist: m3u8.M3U8, opening: bool, episode: int) -> Tuple[str, flo
 
 
 def _build_segments_list(playlist: m3u8.M3U8, opening: bool) -> Tuple[List[str], float]:
-    current_duration = 0
-    segments = []
+    current_duration = .0
+    segments: list[str] = []
     if opening:
         for segment in playlist.segments:
-            segments.append(segment.uri)
-            current_duration += segment.duration
+            segments.append(not_none(segment.uri))
+            current_duration += not_none(segment.duration)
             if current_duration >= Config.seconds_to_match:
                 break
     else:
         for segment in reversed(playlist.segments):
-            segments.insert(0, segment.uri)
-            current_duration += segment.duration
+            segments.insert(0, not_none(segment.uri))
+            current_duration += not_none(segment.duration)
             if current_duration >= Config.seconds_to_match:
                 break
 

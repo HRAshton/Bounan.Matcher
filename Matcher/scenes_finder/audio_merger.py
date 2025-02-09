@@ -4,7 +4,7 @@ import os
 import time
 from typing import List
 
-import ffmpeg
+import ffmpeg  # type: ignore
 from aiohttp import ClientSession
 from retry.api import retry_call
 
