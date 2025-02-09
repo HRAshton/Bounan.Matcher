@@ -8,8 +8,7 @@ from retry import retry
 from Common.py.models import VideoKey, Scenes, MatcherResultRequest, MatcherResultRequestItem
 from LoanApi.LoanApi.get_available_videos import get_available_videos
 from LoanApi.LoanApi.models import AvailableVideo
-from Matcher import SqsClient
-from Matcher.clients.animan_client import upload_empty_scenes, update_video_scenes, get_videos_to_match
+from Matcher.clients import sqs_client, animan_client
 from Matcher.config.config import Config
 from Matcher.matcher_logger import setup_logging
 from Matcher.scenes_finder.find_scenes import find_scenes
@@ -77,7 +76,7 @@ def _process_batch(videos_to_process: list[AvailableVideo]) -> None:
     scenes_to_upload = _get_scenes_to_upload(scenes_by_video)
     logger.info(f"Scenes to upload ({len(scenes_to_upload.items)}): {scenes_to_upload.items}")
 
-    update_video_scenes(scenes_to_upload)
+    animan_client.update_video_scenes(scenes_to_upload)
     logger.info("Scenes uploaded.")
 
 
@@ -88,14 +87,14 @@ def _process_videos(videos_to_match: list[VideoKey]) -> None:
     videos_to_process = _get_videos_to_process(videos_to_match)
     if len(videos_to_process) < Config.min_episode_number:
         logger.info("Not enough videos to process. Waiting for new videos...")
-        upload_empty_scenes(videos_to_match)
+        animan_client.upload_empty_scenes(videos_to_match)
         return
 
     unavailable_videos = [video for video in videos_to_match
                           if video.episode not in [v.episode for v in videos_to_process]]
     if len(unavailable_videos) > 0:
         logger.info(f"{len(unavailable_videos)}/{len(videos_to_match)} videos are unavailable: {unavailable_videos}")
-        upload_empty_scenes(unavailable_videos)
+        animan_client.upload_empty_scenes(unavailable_videos)
 
     logger.info(f"Videos to process ({len(videos_to_process)}): {videos_to_process}")
 
@@ -115,7 +114,7 @@ def _process_videos(videos_to_match: list[VideoKey]) -> None:
             logger.error(f"Error occurred while processing batch: {e}")
             keys = [VideoKey(video.my_anime_list_id, video.dub, video.episode)
                     for video in batch]
-            upload_empty_scenes(keys)
+            animan_client.upload_empty_scenes(keys)
 
 
 def main():
@@ -124,11 +123,11 @@ def main():
 
         videos_to_match: list[VideoKey] = []
         try:
-            videos_to_match_res = get_videos_to_match()
+            videos_to_match_res = animan_client.get_videos_to_match()
             videos_to_match = videos_to_match_res.videos_to_match
             if len(videos_to_match) == 0:
                 logger.info("No videos to match. Waiting for new videos...")
-                SqsClient.wait_for_notification()
+                sqs_client.wait_for_notification()
                 continue
 
             _process_videos(videos_to_match)
@@ -139,7 +138,7 @@ def main():
             logger.error(f"An error occurred: {ex}. "
                          f"{[x for x in traceback.TracebackException.from_exception(ex).format()]}")
             if len(videos_to_match) > 0:
-                upload_empty_scenes(videos_to_match)
+                animan_client.upload_empty_scenes(videos_to_match)
             logger.info("Waiting for 3 seconds...")
             time.sleep(3)
 
