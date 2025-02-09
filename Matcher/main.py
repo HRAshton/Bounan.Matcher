@@ -42,7 +42,8 @@ def _get_videos_to_process(videos_to_match: List[VideoKey]) -> List[AvailableVid
     """
     assert len(videos_to_match) > 0
 
-    available_videos = get_available_videos(videos_to_match[0].my_anime_list_id,
+    available_videos = get_available_videos(Config.loan_api_token,
+                                            videos_to_match[0].my_anime_list_id,
                                             videos_to_match[0].dub)
 
     episodes_to_match = Config.episodes_to_match
@@ -144,7 +145,7 @@ def main():
 
 if __name__ == "__main__":
     load_dotenv()
-    Config.initialize_from_env()
+    Config.initialize_from_ssm()
     setup_logging()
     logger.info("Starting the data processing...")
     main()

@@ -32,12 +32,12 @@ class PreRequestQueue(Generic[A, R]):
         self.results.clear()
         logger.info("Queue was reset and resources released.")
 
-    def pre_request(self, key: int, func: Callable[[A], R], *args: A) -> None:
+    def pre_request(self, key: int, func: Callable[[A], R], config: dict[str, str], *args: A) -> None:
         assert key not in self.results
         assert len(self.results) < 2
 
         if self.pool:
-            future = self.pool.submit(self._run_with_logger, func, *args)
+            future = self.pool.submit(self._run_with_logger, func, config, *args)
             self.results[key] = lambda: future.result()
         else:
             logger.warning("Multiprocessing is disabled")
@@ -49,9 +49,9 @@ class PreRequestQueue(Generic[A, R]):
         return res
 
     @staticmethod
-    def _run_with_logger(func: Callable[[A], R], *args: A) -> R:
+    def _run_with_logger(func: Callable[[A], R], config: dict[str, str], *args: A) -> R:
         # This function is executed in a subprocess, so we need to set up environment again
         load_dotenv()
-        Config.initialize_from_env()
+        Config.initialize_from_dict(config)
         setup_logging()
         return func(*args)
