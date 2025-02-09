@@ -56,7 +56,7 @@ class PreRequestQueue(Generic[TArgs, TResult]):
             logger.warning("Multiprocessing is disabled")
             self._results[key] = lambda: func(*args, **kwargs)
 
-    def get_result(self, key: int) -> TResult:
+    def pop_result(self, key: int) -> TResult:
         res = self._results[key]()
         del self._results[key]
         return res

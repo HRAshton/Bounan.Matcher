@@ -25,14 +25,14 @@ def get_wav_iter(playlists: list[m3u8.M3U8], opening: bool) -> Iterator[tuple[st
         return
 
     config_dict = Config.export()
-    with PreRequestQueue(config_dict) as queue:
+    with PreRequestQueue[[m3u8.M3U8, bool, int], tuple[str, float]](config_dict) as queue:
         queue.pre_request(0, _get_wav, playlists[0], opening, 0)
 
         for i, playlist in enumerate(playlists):
             if file_path_to_delete is not None and DELETE_TEMP_FILES and os.path.exists(file_path_to_delete):
                 os.remove(file_path_to_delete)
 
-            wav_path, segments_duration = queue.get_result(i)
+            wav_path, segments_duration = queue.pop_result(i)
             if i + 1 < len(playlists):
                 # Start downloading next episode in parallel in advance
                 queue.pre_request(i + 1, _get_wav, playlists[i + 1], opening, i + 1)
