@@ -3,14 +3,14 @@ from typing import List
 import boto3
 
 from Common.py.models import VideoKey, Scenes, MatcherResponse, MatcherResultRequest, MatcherResultRequestItem
-from Matcher.config import config
+from Matcher.config.config import Config
 
 lambda_client = boto3.client('lambda')
 
 
 def get_videos_to_match() -> MatcherResponse:
     response = lambda_client.invoke(
-        FunctionName=Config.Config.get_series_to_match_lambda_name,
+        FunctionName=Config.get_series_to_match_lambda_name,
         InvocationType='RequestResponse',
     )
     payload = response['Payload'].read().decode('utf-8')
