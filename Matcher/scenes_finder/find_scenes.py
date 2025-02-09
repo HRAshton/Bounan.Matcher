@@ -17,9 +17,6 @@ from Matcher.scenes_finder.audio_provider import get_wav_iter, get_truncated_dur
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CONFIG = SirConfig(series_window=Config.episodes_to_match,
-                           save_intermediate_results=False)
-
 
 def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey, Scenes]]:
     logger.debug("Processing videos")
@@ -52,8 +49,10 @@ def find_scenes(videos_to_process: List[AvailableVideo]) -> List[Tuple[VideoKey,
 
 
 def _get_scenes_by_playlists(playlists_and_durations: List[Tuple[M3U8, float]]) -> List[Scenes]:
-    openings = _get_openings(playlists_and_durations)
-    endings = _get_endings(playlists_and_durations)
+    sir_config = SirConfig(series_window=Config.episodes_to_match,
+                           save_intermediate_results=False)
+    openings = _get_openings(playlists_and_durations, sir_config)
+    endings = _get_endings(playlists_and_durations, sir_config)
 
     result = []
     for (_, total_duration), opening, ending in zip(playlists_and_durations, openings, endings):
@@ -79,12 +78,12 @@ def _get_playlist_and_duration(video: DownloadableVideo) -> Tuple[m3u8.M3U8, flo
     return playlist, total_duration
 
 
-def _get_openings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Interval]:
+def _get_openings(playlists_and_durations: List[tuple[M3U8, float]], sir_config: SirConfig) -> List[Interval]:
     playlists = [playlist for playlist, _ in playlists_and_durations]
     opening_iter = get_wav_iter(playlists, True)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        lib_openings = recognise_from_audio_files_with_offsets(opening_iter, DEFAULT_CONFIG)
+        lib_openings = recognise_from_audio_files_with_offsets(opening_iter, sir_config)
         openings = [Interval(opening.start, opening.end) for opening in lib_openings]
 
     truncated_durations = get_truncated_durations()
@@ -93,12 +92,12 @@ def _get_openings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Int
     return fixed_openings
 
 
-def _get_endings(playlists_and_durations: List[tuple[M3U8, float]]) -> List[Interval]:
+def _get_endings(playlists_and_durations: List[tuple[M3U8, float]], sir_config: SirConfig) -> List[Interval]:
     playlists = [playlist for playlist, _ in playlists_and_durations]
     ending_iter = get_wav_iter(playlists, False)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        lib_endings = recognise_from_audio_files_with_offsets(ending_iter, DEFAULT_CONFIG)
+        lib_endings = recognise_from_audio_files_with_offsets(ending_iter, sir_config)
         endings = [Interval(ending.start, ending.end) for ending in lib_endings]
 
     truncated_durations = get_truncated_durations()

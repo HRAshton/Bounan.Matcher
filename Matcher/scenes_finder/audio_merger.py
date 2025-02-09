@@ -5,12 +5,10 @@ import time
 from typing import List
 
 import ffmpeg
-from aiohttp import ClientSession, ClientConnectorError
-from retry import retry
+from aiohttp import ClientSession
+from retry.api import retry_call
 
 from Matcher.config.Config import Config
-
-TEMP_PATH_DIR = os.path.join(Config.temp_dir, 'audio_merger')
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +18,7 @@ def download_and_merge_parts(index: int, urls: List[str]) -> str:
     Downloads video parts from urls and merges them into a single wav file
     """
     started_at = time.time()
-    os.makedirs(TEMP_PATH_DIR, exist_ok=True)
+    os.makedirs(_get_temp_dir(), exist_ok=True)
     local_paths = _download_parts(urls)
     logger.debug("Downloaded all video parts.")
 
@@ -45,7 +43,7 @@ def _download_parts(urls: List[str]) -> List[str]:
 
 
 def _create_playlist_file(parts_paths: List[str]) -> str:
-    playlist_path = os.path.join(TEMP_PATH_DIR, 'playlist.txt')
+    playlist_path = os.path.join(_get_temp_dir(), 'playlist.txt')
     with open(playlist_path, 'w') as f:
         for part in parts_paths:
             f.write(f'file {part.replace("\\", "/")}\n')
@@ -58,7 +56,7 @@ def _merge_parts(index: int, playlist_path: str) -> str:
     """
     Merges video parts into a single wav file
     """
-    output_path = os.path.join(TEMP_PATH_DIR, f'{index}.wav')
+    output_path = os.path.join(_get_temp_dir(), f'{index}.wav')
     (ffmpeg
      .input(playlist_path, format='concat', safe=0)
      .output(output_path, ac=1, ar=44100, format='wav', y=None, loglevel="quiet")
@@ -77,13 +75,24 @@ async def _download_all_files(urls: List[str]) -> List[str]:
         return results
 
 
-@retry(ClientConnectorError, tries=Config.download_max_retries_for_ts, delay=1, logger=logger)
+async def _download_part_retried(sem: asyncio.Semaphore, session: ClientSession, index: int, url: str) -> str:
+    return await retry_call(_download_part,
+                            fkwargs={'sem': sem, 'session': session, 'index': index, 'url': url},
+                            tries=Config.download_max_retries_for_ts,
+                            delay=1,
+                            logger=logger)
+
+
 async def _download_part(sem: asyncio.Semaphore, session: ClientSession, index: int, url: str) -> str:
     async with sem:
         async with session.get(url) as response:
-            file_path = os.path.join(TEMP_PATH_DIR, f'{index}.ts')
+            file_path = os.path.join(_get_temp_dir(), f'{index}.ts')
             with open(file_path, 'wb') as f:
                 async for data in response.content.iter_chunked(1024 * 1024):
                     f.write(data)
             logger.debug(f"Downloaded {url} -> {file_path}")
             return file_path
+
+
+def _get_temp_dir() -> str:
+    return os.path.join(Config.temp_dir, 'audio_merger')
