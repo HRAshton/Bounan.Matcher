@@ -5,12 +5,11 @@ import boto3
 from Common.py.models import VideoKey, Scenes, MatcherResponse, MatcherResultRequest, MatcherResultRequestItem
 from Matcher.config.config import Config
 
-lambda_client = boto3.client('lambda')
 logger = logging.getLogger(__name__)
 
 
 def get_videos_to_match() -> MatcherResponse:
-    response = lambda_client.invoke(
+    response = _get_client().invoke(
         FunctionName=Config.get_series_to_match_lambda_name,
         InvocationType='RequestResponse',
     )
@@ -24,7 +23,7 @@ def get_videos_to_match() -> MatcherResponse:
 def update_video_scenes(data: MatcherResultRequest) -> None:
     payload = data.to_json()  # type: ignore
 
-    lambda_client.invoke(
+    _get_client().invoke(
         FunctionName=Config.update_video_scenes_lambda_name,
         InvocationType='RequestResponse',
         Payload=payload
@@ -36,3 +35,7 @@ def upload_empty_scenes(videos_to_match: list[VideoKey]) -> None:
     data = [MatcherResultRequestItem(video_key, Scenes(None, None, None))
             for video_key in videos_to_match]
     update_video_scenes(MatcherResultRequest(data))
+
+
+def _get_client() -> boto3.client:
+    return boto3.client('lambda')

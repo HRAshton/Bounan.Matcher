@@ -6,8 +6,6 @@ from Matcher.clients import ssm_client
 
 T = TypeVar("T")
 
-PARAMETER_NAME = os.environ.get('CONFIGURATION_PARAMETER_NAME')
-
 
 def _add_name(func):
     def wrapper(self):
@@ -20,6 +18,7 @@ class _Config:
     _configuration: dict[str, str] = {}
 
     def initialize_from_ssm(self) -> None:
+        PARAMETER_NAME = os.environ.get('CONFIGURATION_PARAMETER_NAME')
         assert PARAMETER_NAME is not None, "CONFIGURATION_PARAMETER_NAME is not set."
         runtime_config_json = ssm_client.get_ssm_parameter(PARAMETER_NAME)
         self.initialize_from_dict(json.loads(runtime_config_json))

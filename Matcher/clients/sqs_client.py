@@ -5,7 +5,6 @@ import boto3
 
 from Matcher.config.config import Config
 
-client = boto3.client('sqs')
 logger = logging.getLogger(__name__)
 
 
@@ -15,6 +14,7 @@ def wait_for_notification():
     """
 
     last_operating_log_time = time.time()
+    client = boto3.client('sqs')
 
     while True:
         messages = client.receive_message(QueueUrl=Config.notification_queue_url,
