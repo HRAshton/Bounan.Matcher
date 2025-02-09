@@ -87,7 +87,7 @@ def _process_videos(videos_to_match: List[VideoKey]) -> None:
     _ensure_if_all_videos_for_same_group(videos_to_match)
 
     videos_to_process = _get_videos_to_process(videos_to_match)
-    if len(videos_to_process) < Config.episodes_to_match:
+    if len(videos_to_process) < Config.min_episode_number:
         logger.info("Not enough videos to process. Waiting for new videos...")
         upload_empty_scenes(videos_to_match)
         return
