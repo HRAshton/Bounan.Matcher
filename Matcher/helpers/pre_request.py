@@ -1,6 +1,5 @@
 import concurrent.futures
 import logging
-from concurrent.futures import Future
 from typing import Callable, TypeVar, Dict, Generic
 
 from dotenv import load_dotenv
