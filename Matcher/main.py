@@ -1,20 +1,16 @@
+import logging
 import traceback
+from typing import List, Tuple
 
 from dotenv import load_dotenv
 from retry import retry
 
 from Common.py.models import VideoKey, Scenes, MatcherResultRequest, MatcherResultRequestItem
-
-load_dotenv()
-
-import logging
-from typing import List, Tuple
-
-from Matcher.AniMenClient.AniMenClient import upload_empty_scenes, update_video_scenes
 from LoanApi.LoanApi.get_available_videos import get_available_videos
 from LoanApi.LoanApi.models import AvailableVideo
 from Matcher import SqsClient
 from Matcher.AniMenClient import AniMenClient
+from Matcher.AniMenClient.AniMenClient import upload_empty_scenes, update_video_scenes
 from Matcher.config.config import Config
 from Matcher.matcher_logger import setup_logging
 from Matcher.scenes_finder.find_scenes import find_scenes
@@ -147,6 +143,7 @@ def main():
 
 
 if __name__ == "__main__":
+    load_dotenv()
     setup_logging()
     logger.info("Starting the data processing...")
     main()
