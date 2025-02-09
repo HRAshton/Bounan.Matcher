@@ -13,6 +13,7 @@ class _Config:
     _configuration: dict[str, str] | None = None
 
     def initialize_from_ssm(self) -> None:
+        assert PARAMETER_NAME is not None, "CONFIGURATION_PARAMETER_NAME is not set."
         runtime_config_json = ssm_client.get_ssm_parameter(PARAMETER_NAME)
         self._configuration = json.loads(runtime_config_json)
 
@@ -20,6 +21,7 @@ class _Config:
         self._configuration = configuration
 
     def export(self) -> dict[str, str]:
+        assert self._configuration is not None, "Configuration is not initialized."
         return dict(self._configuration)
 
     @property
@@ -85,8 +87,9 @@ class _Config:
         # if last batch contains less than 10 videos.
         return int(self._get_value('batch_size', 10))
 
-    def _get_value(self, key: str, default: T | None = None) -> str | T:
-        value = os.environ.get(key) or self._configuration.get(key, default)
+    def _get_value(self, key: str, default: T | None = None) -> str:
+        assert self._configuration is not None, "Configuration is not initialized."
+        value = os.environ.get(key) or self._configuration.get(key, str(default))
         assert value is not None, f"Configuration value for '{key}' is not set."
         return value
 
