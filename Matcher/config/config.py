@@ -87,9 +87,9 @@ class _Config:
         # if last batch contains less than 10 videos.
         return int(self._get_value('batch_size', 10))
 
-    def _get_value(self, key: str, default: T | None = None) -> str | T:
+    def _get_value(self, key: str, default: str | int | None = None) -> str:
         assert self._configuration is not None, "Configuration is not initialized."
-        value = os.environ.get(key) or self._configuration.get(key, default)
+        value = os.environ.get(key) or self._configuration.get(key, str(default))
         assert value is not None, f"Configuration value for '{key}' is not set."
         return value
 

@@ -13,6 +13,7 @@ from Common.py.models import VideoKey, Interval, Scenes
 from LoanApi.LoanApi.get_playlist import get_playlist
 from LoanApi.LoanApi.models import AvailableVideo, DownloadableVideo
 from Matcher.config.config import Config
+from Matcher.helpers.not_none import not_none
 from Matcher.scenes_finder.audio_provider import get_wav_iter, get_truncated_durations
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ def _get_playlist_and_duration(video: DownloadableVideo) -> Tuple[m3u8.M3U8, flo
         logger.warning(f"Skipping video {video.id} because it has no segments")
         return None
 
-    total_duration = sum([segment.duration for segment in playlist.segments])
+    total_duration = sum([not_none(segment.duration) for segment in playlist.segments])
     if total_duration < 2 * Config.seconds_to_match:
         logger.warning(f"Skipping video {video.id} because it's too short ({total_duration}s)")
         return None

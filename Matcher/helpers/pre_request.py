@@ -38,7 +38,7 @@ class PreRequestQueue(Generic[A, R]):
         assert len(self.results) < 2
 
         if self.pool:
-            future = self._run_in_subprocess(func, *args)
+            future = self.pool.submit(self._run_with_logger, func, *args)
             self.results[key] = lambda: future.result()
         else:
             logger.warning("Multiprocessing is disabled")
@@ -48,9 +48,6 @@ class PreRequestQueue(Generic[A, R]):
         res = self.results[key]()
         del self.results[key]
         return res
-
-    def _run_in_subprocess(self, func: Callable[[A], R], *args: A) -> Future[R]:
-        return self.pool.submit(self._run_with_logger, func, *args)
 
     @staticmethod
     def _run_with_logger(func: Callable[[A], R], *args: A) -> R:
