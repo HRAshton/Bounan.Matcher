@@ -1,5 +1,3 @@
-from typing import List
-
 import boto3
 
 from Common.py.models import VideoKey, Scenes, MatcherResponse, MatcherResultRequest, MatcherResultRequestItem
@@ -30,7 +28,7 @@ def update_video_scenes(data: MatcherResultRequest) -> None:
     )
 
 
-def upload_empty_scenes(videos_to_match: List[VideoKey]) -> None:
+def upload_empty_scenes(videos_to_match: list[VideoKey]) -> None:
     data = [MatcherResultRequestItem(video_key, Scenes(None, None, None))
             for video_key in videos_to_match]
     update_video_scenes(MatcherResultRequest(data))

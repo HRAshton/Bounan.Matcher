@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 import time
-from typing import List
 
 import ffmpeg  # type: ignore
 from aiohttp import ClientSession
@@ -13,7 +12,7 @@ from Matcher.config.config import Config
 logger = logging.getLogger(__name__)
 
 
-def download_and_merge_parts(index: int, urls: List[str]) -> str:
+def download_and_merge_parts(index: int, urls: list[str]) -> str:
     """
     Downloads video parts from urls and merges them into a single wav file
     """
@@ -37,12 +36,12 @@ def download_and_merge_parts(index: int, urls: List[str]) -> str:
     return os.path.normpath(output_path)
 
 
-def _download_parts(urls: List[str]) -> List[str]:
+def _download_parts(urls: list[str]) -> list[str]:
     logger.debug("Downloading video parts...")
     return asyncio.run(_download_all_files(urls))
 
 
-def _create_playlist_file(parts_paths: List[str]) -> str:
+def _create_playlist_file(parts_paths: list[str]) -> str:
     playlist_path = os.path.join(_get_temp_dir(), 'playlist.txt')
     with open(playlist_path, 'w') as f:
         for part in parts_paths:
@@ -66,7 +65,7 @@ def _merge_parts(index: int, playlist_path: str) -> str:
     return output_path
 
 
-async def _download_all_files(urls: List[str]) -> List[str]:
+async def _download_all_files(urls: list[str]) -> list[str]:
     sem = asyncio.Semaphore(Config.download_threads)
 
     async with ClientSession() as session:
