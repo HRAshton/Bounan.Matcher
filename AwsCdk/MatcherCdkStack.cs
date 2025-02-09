@@ -167,9 +167,9 @@ public sealed class MatcherCdkStack : Stack
 
         var json = JsonConvert.SerializeObject(runtimeConfig, Formatting.Indented);
 
-        return new StringParameter(this, "runtime_config", new StringParameterProps
+        return new StringParameter(this, "runtime-config", new StringParameterProps
         {
-            ParameterName = "/bounan/matcher/runtime_config",
+            ParameterName = "/bounan/matcher/runtime-config",
             StringValue = json,
         });
     }
