@@ -1,5 +1,6 @@
 import logging
 import math
+import time
 import warnings
 from statistics import median
 
@@ -64,6 +65,7 @@ def _get_scenes_by_playlists(playlists_and_durations: list[tuple[M3U8, float]]) 
 
 
 def _get_playlist_and_duration(video: DownloadableVideo) -> tuple[m3u8.M3U8, float] | None:
+    logger.info(f"Getting playlist for video {video.id}")
     playlist_content = get_playlist(video)
     playlist = m3u8.loads(playlist_content)
     if not playlist.segments:
@@ -82,10 +84,8 @@ def _get_openings(playlists_and_durations: list[tuple[M3U8, float]], sir_config:
     playlists = [playlist for playlist, _ in playlists_and_durations]
     wav_processor = AudioProvider(playlists, True)
     opening_iter = wav_processor.get_iterator()
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        lib_openings = recognise_from_audio_files_with_offsets(opening_iter, sir_config)
-        openings = [Interval(opening.start, opening.end) for opening in lib_openings]
+    lib_openings = recognise_from_audio_files_with_offsets(opening_iter, sir_config)
+    openings = [Interval(opening.start, opening.end) for opening in lib_openings]
 
     truncated_durations = wav_processor.truncated_durations
     fixed_openings: list[Interval] = _fix_openings(openings, playlists_and_durations, truncated_durations)
