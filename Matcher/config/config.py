@@ -1,27 +1,25 @@
+import json
 import os
 from typing import TypeVar
 
+from Matcher.clients import ssm_client
+
 T = TypeVar("T")
+
+PARAMETER_NAME = os.environ.get('CONFIGURATION_PARAMETER_NAME')
 
 
 class _Config:
-    _configuration: dict[str, str] | None
+    _configuration: dict[str, str] | None = None
 
-    def initialize_from_env(self) -> None:
-        runtime_config_json: dict[str, str] = {}
-        configProperties = _Config.__dict__.keys()
-        for key in configProperties:
-            for env_key in os.environ.keys():
-                if key.lower() == env_key.lower():
-                    runtime_config_json[key] = os.environ[env_key]
-
-        self._configuration = runtime_config_json
+    def initialize_from_ssm(self) -> None:
+        runtime_config_json = ssm_client.get_ssm_parameter(PARAMETER_NAME)
+        self._configuration = json.loads(runtime_config_json)
 
     def initialize_from_dict(self, configuration: dict[str, str]) -> None:
         self._configuration = configuration
 
     def export(self) -> dict[str, str]:
-        assert self._configuration is not None
         return dict(self._configuration)
 
     @property
@@ -87,9 +85,8 @@ class _Config:
         # if last batch contains less than 10 videos.
         return int(self._get_value('batch_size', 10))
 
-    def _get_value(self, key: str, default: str | int | None = None) -> str:
-        assert self._configuration is not None, "Configuration is not initialized."
-        value = os.environ.get(key) or self._configuration.get(key, str(default))
+    def _get_value(self, key: str, default: T | None = None) -> str | T:
+        value = os.environ.get(key) or self._configuration.get(key, default)
         assert value is not None, f"Configuration value for '{key}' is not set."
         return value
 

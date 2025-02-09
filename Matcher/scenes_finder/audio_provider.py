@@ -24,8 +24,9 @@ def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[st
     if len(playlists) < 2:
         return
 
+    config_dict = Config.export()
     with PreRequestQueue() as queue:
-        queue.pre_request(0, _get_wav, playlists[0], opening, 0)
+        queue.pre_request(0, _get_wav, config_dict, playlists[0], opening, 0)
 
         for i, playlist in enumerate(playlists):
             if file_path_to_delete is not None and DELETE_TEMP_FILES and os.path.exists(file_path_to_delete):
@@ -33,7 +34,7 @@ def get_wav_iter(playlists: List[m3u8.M3U8], opening: bool) -> Iterator[Tuple[st
 
             wav_path, segments_duration = queue.get_result(i)
             if i + 1 < len(playlists):
-                queue.pre_request(i + 1, _get_wav, playlists[i + 1], opening, i + 1)
+                queue.pre_request(i + 1, _get_wav, config_dict, playlists[i + 1], opening, i + 1)
 
             truncated_duration = min(segments_duration, Config.seconds_to_match)
             offset = 0 if opening else max(segments_duration - Config.seconds_to_match, 0)
