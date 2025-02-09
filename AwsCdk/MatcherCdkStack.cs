@@ -151,6 +151,7 @@ public sealed class MatcherCdkStack : Stack
             loan_api_token = config.LoanApiToken,
             log_group_name = logGroup.LogGroupName,
             log_level = "INFO",
+            min_episode_number = 2,
             episodes_to_match = 5,
             seconds_to_match = 6 * 60,
             notification_queue_url = videoRegisteredQueue.QueueUrl,

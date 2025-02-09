@@ -49,6 +49,12 @@ class _Config:
 
     @property
     @_add_name
+    def min_episode_number(self, name: str = "") -> int:
+        """ Minimum episode number to process. """
+        return int(self._get_value(name))
+
+    @property
+    @_add_name
     def episodes_to_match(self, name: str = "") -> int:
         """ Number of episodes to match cross each other. """
         return int(self._get_value(name, 5))
