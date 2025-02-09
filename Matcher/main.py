@@ -1,4 +1,5 @@
 import logging
+import time
 import traceback
 from typing import List, Tuple
 
@@ -140,6 +141,8 @@ def main():
                          f"{[x for x in traceback.TracebackException.from_exception(ex).format()]}")
             if len(videos_to_match) > 0:
                 upload_empty_scenes(videos_to_match)
+            logger.info("Waiting for 3 seconds...")
+            time.sleep(3)
 
 
 if __name__ == "__main__":
