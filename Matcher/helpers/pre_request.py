@@ -3,6 +3,9 @@ import logging
 from concurrent.futures import Future
 from typing import Callable, TypeVar, Dict
 
+from dotenv import load_dotenv
+
+from Matcher.config.config import Config
 from Matcher.matcher_logger import setup_logging
 
 A = TypeVar('A')
@@ -47,6 +50,8 @@ def _run_in_subprocess(func: Callable[[A], R], *args: A) -> Future[R]:
 
 
 def _run_with_logger(func: Callable[[A], R], *args: A) -> R:
-    # This function is executed in a subprocess, so we need to set up logging
+    # This function is executed in a subprocess, so we need to set up environment again
+    load_dotenv()
+    Config.initialize_from_env()
     setup_logging()
     return func(*args)
