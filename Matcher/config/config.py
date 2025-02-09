@@ -23,7 +23,7 @@ class _Config:
 
     @property
     def notification_queue_url(self) -> str:
-        return _Config.get_value('VIDEO_REGISTERED_QUEUE_URL')
+        return _Config.get_value('NOTIFICATION_QUEUE_URL')
 
     @property
     def get_series_to_match_lambda_name(self) -> str:
