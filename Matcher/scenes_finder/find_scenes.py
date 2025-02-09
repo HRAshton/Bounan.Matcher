@@ -13,7 +13,7 @@ from LoanApi.LoanApi.get_playlist import get_playlist
 from LoanApi.LoanApi.models import AvailableVideo, DownloadableVideo
 from Matcher.config.config import Config
 from Matcher.helpers.not_none import not_none
-from Matcher.scenes_finder.audio_provider import get_wav_iter, get_truncated_durations
+from Matcher.scenes_finder.audio_provider import AudioProvider
 
 logger = logging.getLogger(__name__)
 
@@ -80,13 +80,14 @@ def _get_playlist_and_duration(video: DownloadableVideo) -> tuple[m3u8.M3U8, flo
 
 def _get_openings(playlists_and_durations: list[tuple[M3U8, float]], sir_config: SirConfig) -> list[Interval]:
     playlists = [playlist for playlist, _ in playlists_and_durations]
-    opening_iter = get_wav_iter(playlists, True)
+    wav_processor = AudioProvider(playlists, True)
+    opening_iter = wav_processor.get_iterator()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         lib_openings = recognise_from_audio_files_with_offsets(opening_iter, sir_config)
         openings = [Interval(opening.start, opening.end) for opening in lib_openings]
 
-    truncated_durations = get_truncated_durations()
+    truncated_durations = wav_processor.truncated_durations
     fixed_openings: list[Interval] = _fix_openings(openings, playlists_and_durations, truncated_durations)
 
     return fixed_openings
@@ -94,13 +95,14 @@ def _get_openings(playlists_and_durations: list[tuple[M3U8, float]], sir_config:
 
 def _get_endings(playlists_and_durations: list[tuple[M3U8, float]], sir_config: SirConfig) -> list[Interval]:
     playlists = [playlist for playlist, _ in playlists_and_durations]
-    ending_iter = get_wav_iter(playlists, False)
+    wav_processor = AudioProvider(playlists, True)
+    ending_iter = wav_processor.get_iterator()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         lib_endings = recognise_from_audio_files_with_offsets(ending_iter, sir_config)
         endings = [Interval(ending.start, ending.end) for ending in lib_endings]
 
-    truncated_durations = get_truncated_durations()
+    truncated_durations = wav_processor.truncated_durations
     fixed_endings: list[Interval] = _fix_endings(endings, playlists_and_durations, truncated_durations)
 
     return fixed_endings
