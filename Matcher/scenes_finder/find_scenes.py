@@ -95,7 +95,7 @@ def _get_openings(playlists_and_durations: list[tuple[M3U8, float]], sir_config:
 
 def _get_endings(playlists_and_durations: list[tuple[M3U8, float]], sir_config: SirConfig) -> list[Interval]:
     playlists = [playlist for playlist, _ in playlists_and_durations]
-    wav_processor = AudioProvider(playlists, True)
+    wav_processor = AudioProvider(playlists, False)
     ending_iter = wav_processor.get_iterator()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
