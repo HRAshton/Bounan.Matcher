@@ -1,5 +1,5 @@
-aiohttp ~= 3.11.13
-boto3 ~= 1.37.10
+aiohttp ~= 3.11.14
+boto3 ~= 1.37.14
 dataclasses-json ~= 0.6.7
 python-dotenv ~= 1.0.1
 ffmpeg-python ~= 0.2.0
