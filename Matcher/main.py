@@ -118,6 +118,12 @@ def _process_videos(videos_to_match: list[VideoKey]) -> None:
 
 
 def main():
+    logger.info("Initializing the configuration...")
+    load_dotenv()
+    Config.initialize_from_ssm()
+    setup_logging()
+
+    logger.info("Starting the data processing...")
     while True:
         logger.info("Getting the data...")
 
@@ -141,12 +147,4 @@ def main():
                 animan_client.upload_empty_scenes(videos_to_match)
             logger.info("Waiting for 3 seconds...")
             time.sleep(3)
-
-
-if __name__ == "__main__":
-    load_dotenv()
-    Config.initialize_from_ssm()
-    setup_logging()
-    logger.info("Starting the data processing...")
-    main()
     logger.info("Data processing stopped.")

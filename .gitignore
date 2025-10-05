@@ -8,5 +8,6 @@ riderModule.iml
 *.user
 __pycache__
 
+.venv/
 cdk.out/
 Matcher/Worker.Tests/Out/
