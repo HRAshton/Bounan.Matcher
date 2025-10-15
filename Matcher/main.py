@@ -30,7 +30,7 @@ def _ensure_if_all_videos_for_same_group(videos_to_match: list[VideoKey]) -> Non
             raise ValueError("All videos are not for the same group.")
 
 
-def _get_videos_to_process(videos_to_match: list[VideoKey]) -> list[AvailableVideo]:
+def _get_videos_to_process(videos_to_match: list[VideoKey], force: bool) -> list[AvailableVideo]:
     """
     Get videos to process.
     Returns the same list of videos extended with N more videos before and after
@@ -43,6 +43,12 @@ def _get_videos_to_process(videos_to_match: list[VideoKey]) -> list[AvailableVid
     available_videos = get_available_videos(Config.loan_api_token,
                                             videos_to_match[0].my_anime_list_id,
                                             videos_to_match[0].dub)
+    if force:
+        if len(available_videos) < 27:
+            return available_videos
+        else:
+            logger.error("Force processing is enabled, but there are more than 27 available videos.")
+            return []
 
     episodes_to_match = Config.episodes_to_match
     indexes_to_process: set[int] = set()
@@ -80,11 +86,11 @@ def _process_batch(videos_to_process: list[AvailableVideo]) -> None:
     logger.info("Scenes uploaded.")
 
 
-def _process_videos(videos_to_match: list[VideoKey]) -> None:
+def _process_videos(videos_to_match: list[VideoKey], force: bool) -> None:
     logger.info(f"Received {len(videos_to_match)} videos to match: {videos_to_match}.")
     _ensure_if_all_videos_for_same_group(videos_to_match)
 
-    videos_to_process = _get_videos_to_process(videos_to_match)
+    videos_to_process = _get_videos_to_process(videos_to_match, force)
     if len(videos_to_process) < Config.min_episode_number:
         logger.info("Not enough videos to process. Waiting for new videos...")
         animan_client.upload_empty_scenes(videos_to_match)
@@ -117,7 +123,7 @@ def _process_videos(videos_to_match: list[VideoKey]) -> None:
             animan_client.upload_empty_scenes(keys)
 
 
-def main():
+def main() -> None:
     logger.info("Initializing the configuration...")
     load_dotenv()
     Config.initialize_from_ssm()
@@ -136,7 +142,7 @@ def main():
                 sqs_client.wait_for_notification()
                 continue
 
-            _process_videos(videos_to_match)
+            _process_videos(videos_to_match, force=False)
         except KeyboardInterrupt:
             logger.error("Shutting down...")
             break
