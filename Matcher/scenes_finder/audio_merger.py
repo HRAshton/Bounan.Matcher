@@ -86,6 +86,9 @@ async def _download_part(sem: asyncio.Semaphore, session: ClientSession, index: 
     async with sem:
         async with session.get(url) as response:
             file_path = os.path.join(_get_temp_dir(), f'{index}.ts')
+            if os.path.exists(file_path):  # TODO: Create a better way to handle temporary files. Content manager?
+                logger.debug(f"File already exists, deleting: {file_path}")
+                os.remove(file_path)
             with open(file_path, 'wb') as f:
                 async for data in response.content.iter_chunked(1024 * 1024):
                     f.write(data)
