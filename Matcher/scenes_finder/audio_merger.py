@@ -69,7 +69,7 @@ async def _download_all_files(urls: list[str]) -> list[str]:
     sem = asyncio.Semaphore(Config.download_threads)
 
     async with ClientSession() as session:
-        tasks = [_download_part(sem, session, i, url) for i, url in enumerate(urls)]
+        tasks = [_download_part_retried(sem, session, i, url) for i, url in enumerate(urls)]
         results = await asyncio.gather(*tasks)
         return results
 
