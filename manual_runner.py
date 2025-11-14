@@ -3,7 +3,6 @@ import logging
 from dotenv import load_dotenv
 from Common.py.models import VideoKey
 from Matcher.config.config import Config
-from Matcher.config.config import Config
 import Matcher.main
 from Matcher.matcher_logger import setup_logging
 
@@ -23,4 +22,6 @@ if __name__ == "__main__":
         mal_id, group = anime_key.split("#")
         print(f"Processing {mal_id} from {group}")
         videos_to_match = VideoKey(my_anime_list_id=int(mal_id), dub=group, episode=-1)
+
+        # noinspection PyProtectedMember
         Matcher.main._process_videos([videos_to_match], force=True)

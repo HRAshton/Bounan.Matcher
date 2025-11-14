@@ -1,6 +1,5 @@
 import logging
 import math
-import time
 import warnings
 from statistics import median
 
