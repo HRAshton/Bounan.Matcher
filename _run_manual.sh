@@ -1,0 +1,1 @@
+./.venv/Scripts/python.exe ./manual_runner.py
