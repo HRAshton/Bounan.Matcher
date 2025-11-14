@@ -37,5 +37,5 @@ def upload_empty_scenes(videos_to_match: list[VideoKey]) -> None:
     update_video_scenes(MatcherResultRequest(data))
 
 
-def _get_client() -> boto3.client:
+def _get_client():
     return boto3.client('lambda')
