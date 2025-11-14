@@ -82,8 +82,15 @@ def _process_batch(videos_to_process: list[AvailableVideo]) -> None:
     scenes_to_upload = _get_scenes_to_upload(scenes_by_video)
     logger.info(f"Scenes to upload ({len(scenes_to_upload.items)}): {scenes_to_upload.items}")
 
-    animan_client.update_video_scenes(scenes_to_upload)
-    logger.info("Scenes uploaded.")
+    if len(scenes_to_upload.items) == len(videos_to_process):
+        animan_client.update_video_scenes(scenes_to_upload)
+        logger.info("Scenes uploaded.")
+    else:
+        keys = [VideoKey(video.my_anime_list_id, video.dub, video.episode)
+                for video in videos_to_process]
+        animan_client.upload_empty_scenes(keys)
+        logger.error("Number of scenes to upload does not match number of videos to process.")
+        logger.warning("Uploaded empty scenes.")
 
 
 def _process_videos(videos_to_match: list[VideoKey], force: bool) -> None:
@@ -98,9 +105,10 @@ def _process_videos(videos_to_match: list[VideoKey], force: bool) -> None:
 
     unavailable_videos = [video for video in videos_to_match
                           if video.episode not in [v.episode for v in videos_to_process]]
-    if len(unavailable_videos) > 0:
+    if len(unavailable_videos) > 0 and not force:
         logger.info(f"{len(unavailable_videos)}/{len(videos_to_match)} videos are unavailable: {unavailable_videos}")
         animan_client.upload_empty_scenes(unavailable_videos)
+        return
 
     logger.info(f"Videos to process ({len(videos_to_process)}): {videos_to_process}")
 
