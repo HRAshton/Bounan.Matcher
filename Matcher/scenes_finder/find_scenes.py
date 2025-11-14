@@ -35,12 +35,9 @@ def find_scenes(videos_to_process: list[AvailableVideo]) -> list[tuple[VideoKey,
 
     found_scenes = _get_scenes_by_playlists(non_empty_playlists)
 
-    all_scenes: list[Scenes] = []
-    for i, scenes in enumerate(found_scenes):
-        if i in empty_playlist_indexes:
-            all_scenes.append(Scenes(None, None, None))
-        else:
-            all_scenes.append(scenes)
+    all_scenes: list[Scenes] = list(found_scenes)
+    for index in empty_playlist_indexes:
+        all_scenes.insert(index, Scenes(None, None, None))
 
     video_keys = [VideoKey(video.my_anime_list_id, video.dub, video.episode)
                   for video in videos_to_process]
