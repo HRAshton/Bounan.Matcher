@@ -32,7 +32,7 @@ def update_video_scenes(data: MatcherResultRequest) -> None:
 
 def upload_empty_scenes(videos_to_match: list[VideoKey]) -> None:
     logger.info("Uploading empty scenes for videos: %s", videos_to_match)
-    data = [MatcherResultRequestItem(video_key, Scenes(None, None, None))
+    data = [MatcherResultRequestItem(video_key, scenes=None)
             for video_key in videos_to_match]
     update_video_scenes(MatcherResultRequest(data))
 
