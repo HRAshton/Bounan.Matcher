@@ -69,7 +69,7 @@ def _get_videos_to_process(videos_to_match: list[VideoKey], force: bool) -> list
 
 
 def _get_scenes_to_upload(scenes_by_video: list[tuple[VideoKey, Scenes]]) -> MatcherResultRequest:
-    items = [MatcherResultRequestItem(video_key=video_key, scenes=scenes)
+    items = [MatcherResultRequestItem(video_key=video_key, scenes=scenes, is_failed=False)
              for video_key, scenes in scenes_by_video]
     return MatcherResultRequest(items=items)
 
