@@ -5,7 +5,6 @@ import warnings
 from statistics import median
 
 import m3u8
-import requests
 from m3u8 import M3U8
 from series_intro_recognizer.config import Config as SirConfig
 from series_intro_recognizer.processors.audio_files import recognise_from_audio_files_with_offsets
@@ -49,10 +48,9 @@ def find_scenes(my_anime_list_id: int,
 
 
 def _get_scenes_by_playlists(playlists_and_durations: list[tuple[M3U8, float]]) -> list[Scenes]:
-    sir_config = SirConfig(series_window=Config.episodes_to_match,
-                           save_intermediate_results=False)
-    openings = _get_openings(playlists_and_durations, sir_config)
-    endings = _get_endings(playlists_and_durations, sir_config)
+    openings = _get_openings(playlists_and_durations, SirConfig(series_window=Config.episodes_to_match))
+    endings = _get_endings(playlists_and_durations, SirConfig(series_window=Config.episodes_to_match,
+                                                              offset_calculator_max_ignored_trailing_positive_secs=15))
 
     result = []
     for (_, total_duration), opening, ending in zip(playlists_and_durations, openings, endings):
