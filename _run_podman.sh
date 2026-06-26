@@ -1,3 +1,5 @@
+podman build -t matcher:latest .
+
 podman run \
   -d \
   --name matcher \
