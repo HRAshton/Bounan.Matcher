@@ -33,7 +33,7 @@ class MatcherCdkStack(Stack):
 
         log_group = self._create_log_group()
         self._set_error_alarm(config, log_group)
-        self._set_no_logs_alarm(config, log_group)
+        self._set_stale_sqs_messages_alarm(config, video_registered_queue)
         log_group.grant_write(user)
 
         access_key = iam.CfnAccessKey(
@@ -63,7 +63,11 @@ class MatcherCdkStack(Stack):
             "VideoRegisteredTopic",
             config.video_registered_topic_arn,
         )
-        new_episodes_queue = sqs.Queue(self, "VideoRegisteredQueue")
+        new_episodes_queue = sqs.Queue(
+            self,
+            "VideoRegisteredQueue",
+            retention_period=Duration.days(1),
+        )
         new_episodes_topic.add_subscription(sns_subscriptions.SqsSubscription(new_episodes_queue))
 
         new_episodes_queue.grant_consume_messages(user)
@@ -126,29 +130,29 @@ class MatcherCdkStack(Stack):
         topic.add_subscription(sns_subscriptions.EmailSubscription(config.alert_email))
         alarm.add_alarm_action(cloudwatch_actions.SnsAction(topic))
 
-    def _set_no_logs_alarm(self, config: MatcherCdkStackConfig, log_group: logs.ILogGroup) -> None:
-        no_logs_metric = cloudwatch.Metric(
-            namespace="AWS/Logs",
-            metric_name="IncomingLogEvents",
-            dimensions_map={"LogGroupName": log_group.log_group_name},
-            statistic="Sum",
-            period=Duration.minutes(2),
+    def _set_stale_sqs_messages_alarm(self, config: MatcherCdkStackConfig, queue: sqs.IQueue) -> None:
+        oldest_message_age_metric = cloudwatch.Metric(
+            namespace="AWS/SQS",
+            metric_name="ApproximateAgeOfOldestMessage",
+            dimensions_map={"QueueName": queue.queue_name},
+            statistic="Maximum",
+            period=Duration.minutes(1),
         )
 
-        no_log_alarm = cloudwatch.Alarm(
+        alarm = cloudwatch.Alarm(
             self,
-            "NoLogsAlarm",
-            metric=no_logs_metric,
-            threshold=0,
-            comparison_operator=cloudwatch.ComparisonOperator.LESS_THAN_OR_EQUAL_TO_THRESHOLD,
+            "StaleSqsMessagesAlarm",
+            metric=oldest_message_age_metric,
+            threshold=300,
+            comparison_operator=cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
             evaluation_periods=1,
-            treat_missing_data=cloudwatch.TreatMissingData.BREACHING,
-            alarm_description="Alarm if no logs received within 2 minutes",
+            treat_missing_data=cloudwatch.TreatMissingData.NOT_BREACHING,
+            alarm_description="Alarm if the SQS queue has visible messages older than 5 minutes",
         )
 
-        topic = sns.Topic(self, "NoLogAlarmSnsTopic")
+        topic = sns.Topic(self, "StaleSqsMessagesAlarmSnsTopic")
         topic.add_subscription(sns_subscriptions.EmailSubscription(config.alert_email))
-        no_log_alarm.add_alarm_action(cloudwatch_actions.SnsAction(topic))
+        alarm.add_alarm_action(cloudwatch_actions.SnsAction(topic))
 
     def _save_parameter(
             self,
